@@ -59,6 +59,13 @@
 
 VALUE rb_cMutex;
 VALUE rb_cBarrier;
+VALUE rb_cQueue;
+/*
+ * deactivalting SizedQueue by now as it's not yet being implemented 
+ *
+ * VALUE rb_cSizedQueue;
+ */
+
 
 static void sleep_timeval(rb_thread_t *th, struct timeval time);
 static void sleep_wait_for_interrupt(rb_thread_t *th, double sleepsec);
@@ -2285,7 +2292,7 @@ rb_fd_resize(int n, rb_fdset_t *fds)
     if (o < sizeof(fd_set)) o = sizeof(fd_set);
 
     if (m > o) {
-	fds->fdset = realloc(fds->fdset, m);
+	fds->fdset = xrealloc(fds->fdset, m);
 	memset((char *)fds->fdset + o, 0, m - o);
     }
     if (n >= fds->maxfd) fds->maxfd = n + 1;
@@ -2319,7 +2326,7 @@ rb_fd_copy(rb_fdset_t *dst, const fd_set *src, int max)
 
     if (size < sizeof(fd_set)) size = sizeof(fd_set);
     dst->maxfd = max;
-    dst->fdset = realloc(dst->fdset, size);
+    dst->fdset = xrealloc(dst->fdset, size);
     memcpy(dst->fdset, src, size);
 }
 
@@ -4135,6 +4142,177 @@ rb_thread_backtrace_m(VALUE thval)
 }
 
 /*
+ *  Document-class: Queue
+ *
+ *  This class provides a way to synchronize communication between threads.
+ *
+ *  Example:
+ *
+ *    require 'thread'
+ *    queue = Queue.new
+ *
+ *  producer = Thread.new do
+ *    5.times do |i|
+ *      sleep rand(i) # simulate expense
+ *      queue << i
+ *      puts "#{i} produced"
+ *    end
+ *  end
+ *
+ *  consumer = Thread.new do
+ *    5.times do |i|
+ *      value = queue.pop
+ *      sleep rand(i/2) # simulate expense
+ *      puts "consumed #{value}"
+ *    end
+ *  end
+ *
+ */
+
+typedef struct _Queue {
+    Mutex mutex;
+    /* TODO: check if Array is used this way*/
+    Array que;
+    unsigned long max;
+} Queue;
+
+static VALUE
+rb_cQueue_alloc(VALUE klass)
+{
+    
+}
+
+
+/*
+ * Document-method: new
+ * call-seq: new
+ *
+ * Creates a new queue.
+ *
+ */
+
+static VALUE
+rb_cQueue_initialize(VALUE klass)
+{
+    
+}
+
+/*
+ * Document-method: push
+ * call-seq: push(obj)
+ *
+ * Pushes +obj+ to the queue.
+ *
+ */
+
+static VALUE
+rb_cQueue_push(VALUE self, VALUE obj);
+{
+    Queue *queue;
+    Data_Get_Struct(self, Queue, queue);
+
+    rb_mutex_synchronize(queue->mutex)
+    /* TODO: I've stopped HERE */
+
+    return self;
+
+}
+
+/*
+ * Document-method: pop
+ * call_seq: pop(non_block=false)
+ *
+ * Retrieves data from the queue.  If the queue is empty, the calling thread is
+ * suspended until data is pushed onto the queue.  If +non_block+ is true, the
+ * thread isn't suspended, and an exception is raised.
+ *
+ */
+
+static VALUE
+rb_cQueue_pop(int argc, VALUE *argv, VALUE self);
+{
+    
+}
+
+/*
+ * Document-method: empty?
+ * call-seq: empty?
+ *
+ * Returns +true+ if the queue is empty.
+ *
+ */
+
+static VALUE
+rb_cQueue_empty_p(VALUE self);
+{
+    
+}
+
+/*
+ * Document-method: clear
+ * call-seq: clear
+ *
+ * Removes all objects from the queue.
+ *
+ */
+
+static VALUE
+rb_cQueue_clear(VALUE self);
+{
+    
+}
+
+/*
+ * Document-method: length
+ * call-seq: length
+ *
+ * Returns the length of the queue.
+ *
+ */
+
+static VALUE
+rb_cQueue_length(VALUE self);
+{
+    
+}
+
+/*
+ * Document-method: num_waiting
+ * call-seq: num_waiting
+ *
+ * Returns the number of threads waiting on the queue.
+ *
+ */
+
+static VALUE
+rb_cQueue_num_waiting(VALUE self);
+{
+    
+}
+
+/*
+ * TODO: merge with Init_Thread
+ */
+void
+Init_Queue(void)
+{
+    rb_cQueue = rb_define_class("Queue", rb_cObject);
+    rb_define_alloc_func(rb_cQueue, rb_cQueue_alloc)
+    rb_define_method(rb_cQueue, "initialize", rb_cQueue_initilize, 0);
+    rb_define_method(rb_cQueue, "push", rb_cQueue_push, 1);
+    rb_define_method(rb_cQueue, "pop", rb_cQueue_pop, -1);
+    rb_define_method(rb_cQueue, "empty?", rb_cQueue_empty_p, 0);
+    rb_define_method(rb_cQueue, "clear", rb_cQueue_clear, 0);
+    rb_define_method(rb_cQueue, "length", rb_cQueue_length, 0);
+    rb_define_method(rb_cQueue, "num_waiting", rb_cQueue_num_waiting, 0);
+    rb_alias(rb_cQueue, rb_intern("enq"), rb_intern("push"));
+    rb_alias(rb_cQueue, rb_intern("<<"), rb_intern("push"));
+    rb_alias(rb_cQueue, rb_intern("deq"), rb_intern("pop"));
+    rb_alias(rb_cQueue, rb_intern("shift"), rb_intern("pop"));
+    rb_alias(rb_cQueue, rb_intern("size"), rb_intern("length"));
+}
+
+/*
  *  Document-class: ThreadError
  *
  *  Raised when an invalid operation is attempted on a thread.
@@ -4369,3 +4547,4 @@ rb_reset_coverages(void)
     GET_VM()->coverages = Qfalse;
     rb_remove_event_hook(update_coverage);
 }
+
