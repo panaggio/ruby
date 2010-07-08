@@ -4208,14 +4208,27 @@ rb_cQueue_initialize(VALUE klass)
 static VALUE
 rb_cQueue_push(VALUE self, VALUE obj);
 {
+    VALUE thread;
     Queue *queue;
     Data_Get_Struct(self, Queue, queue);
 
-    rb_mutex_synchronize(queue->mutex)
-    /* TODO: I've stopped HERE */
+    rb_mutex_lock(&queue->mutex);
+
+    rb_ary_push(&queue->que);
+
+    long ary_len = RARRAY_LEN(queue->que);
+    /*
+     * TODO: check if there's need for a ConditionVariable here or not
+     */
+    while(queue->max && ary_len >= queue->max) {
+        thread = rb_ary_shift(&queue->waiting);
+        if thread != Qnil
+           rb_thread_wakeup(&thread);
+    }
+
+    rb_mutex_unlock(&queue->mutex);
 
     return self;
-
 }
 
 /*
@@ -4245,7 +4258,15 @@ rb_cQueue_pop(int argc, VALUE *argv, VALUE self);
 static VALUE
 rb_cQueue_empty_p(VALUE self);
 {
-    
+    VALUE result;
+    Queue *queue;
+    Data_Get_Struct(self, Queue, queue);
+
+    lock_mutex(&queue->mutex);
+    result = RARRAY_LEN(queue->que) == 0 ? Qtrue : Qfalse;
+    unlock_mutex(&queue->mutex);
+
+    return result;
 }
 
 /*
@@ -4273,7 +4294,17 @@ rb_cQueue_clear(VALUE self);
 static VALUE
 rb_cQueue_length(VALUE self);
 {
-    
+    long len;
+    VALUE result;
+    Queue *queue;
+    Data_Get_Struct(self, Queue, queue);
+
+    lock_mutex(&queue->mutex);
+    len = RARRAY_LEN(queue->que);
+    result = ULONG2NUM(len);
+    unlock_mutex(&queue->mutex);
+
+    return result;
 }
 
 /*
