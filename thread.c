@@ -4171,9 +4171,15 @@ rb_thread_backtrace_m(VALUE thval)
 
 typedef struct _Queue {
     Mutex mutex;
-    /* TODO: check if Array is used this way*/
-    Array que;
+    RArray que;
     unsigned long max;
+    /*
+     * TODO: check if these condition variable are really necessary
+     * 
+     * rb_thread_cond_t space_available;
+     * rb_thread_cond_t value_available;
+     */
+    /* TODO: check if Array is used this way*/
 } Queue;
 
 static VALUE
@@ -4280,7 +4286,14 @@ rb_cQueue_empty_p(VALUE self);
 static VALUE
 rb_cQueue_clear(VALUE self);
 {
-    
+    Queue *queue;
+    Data_Get_Struct(self, Queue, queue);
+
+    lock_mutex(&queue->mutex);
+    rb_ary_clear(&queue->que);
+    unlock_mutex(&queue->mutex);
+
+    return self;
 }
 
 /*
@@ -4318,7 +4331,17 @@ rb_cQueue_length(VALUE self);
 static VALUE
 rb_cQueue_num_waiting(VALUE self);
 {
-    
+    long len;
+    VALUE result;
+    Queue *queue;
+    Data_Get_Struct(self, Queue, queue);
+
+    lock_mutex(&queue->mutex);
+    len = RARRAY_LEN(queue->waiting);
+    result = ULONG2NUM(len);
+    unlock_mutex(&queue->mutex);
+
+    return result;
 }
 
 /*
