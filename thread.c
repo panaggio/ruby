@@ -60,11 +60,6 @@
 VALUE rb_cMutex;
 VALUE rb_cBarrier;
 VALUE rb_cQueue;
-/*
- * deactivalting SizedQueue by now as it's not yet being implemented 
- *
- * VALUE rb_cSizedQueue;
- */
 
 
 static void sleep_timeval(rb_thread_t *th, struct timeval time);
@@ -4170,20 +4165,12 @@ rb_thread_backtrace_m(VALUE thval)
  */
 
 typedef struct _Queue {
-    Mutex mutex;
-    RArray que;
-    unsigned long max;
-    /*
-     * TODO: check if these condition variable are really necessary
-     * 
-     * rb_thread_cond_t space_available;
-     * rb_thread_cond_t value_available;
-     */
-    /* TODO: check if Array is used this way*/
+    mutex_t mutex;
+    VALUE que;
 } Queue;
 
 static VALUE
-rb_cQueue_alloc(VALUE klass)
+rb_queue_alloc(VALUE klass)
 {
     
 }
@@ -4198,7 +4185,7 @@ rb_cQueue_alloc(VALUE klass)
  */
 
 static VALUE
-rb_cQueue_initialize(VALUE klass)
+rb_queue_initialize(VALUE klass)
 {
     
 }
@@ -4212,7 +4199,7 @@ rb_cQueue_initialize(VALUE klass)
  */
 
 static VALUE
-rb_cQueue_push(VALUE self, VALUE obj);
+rb_queue_push(VALUE self, VALUE obj);
 {
     VALUE thread;
     Queue *queue;
@@ -4222,11 +4209,7 @@ rb_cQueue_push(VALUE self, VALUE obj);
 
     rb_ary_push(&queue->que);
 
-    long ary_len = RARRAY_LEN(queue->que);
-    /*
-     * TODO: check if there's need for a ConditionVariable here or not
-     */
-    while(queue->max && ary_len >= queue->max) {
+    while(RARRAY_LEN(queue->que)) {
         thread = rb_ary_shift(&queue->waiting);
         if thread != Qnil
            rb_thread_wakeup(&thread);
@@ -4248,10 +4231,10 @@ rb_cQueue_push(VALUE self, VALUE obj);
  */
 
 static VALUE
-rb_cQueue_pop(int argc, VALUE *argv, VALUE self);
+rb_queue_pop(int argc, VALUE *argv, VALUE self);
 {
     int should_block;
-    VALUE poped;
+    VALUE poped, current_thread;
     Queue *queue;
     Data_Get_Struct(self, Queue, queue);
 
@@ -4269,11 +4252,15 @@ rb_cQueue_pop(int argc, VALUE *argv, VALUE self);
 
     rb_mutex_lock(&queue->mutex);
 
+    if (!RARRAY_LEN(queue->que) && !should_block) {
+        rb_mutex_unlock(&queue->mutex);
+        rb_raise(rb_eThreadError, "queue empty");
+    }
+
     while(!RARRAY_LEN(queue->que)) {
-        if should_block
-            rb_raise(rb_eThreadError, "queue empty");
-        rb_ary_push(rb_thread_current);
-        rb_mutex_sleep_forever;
+        current_thread = rb_thread_current();
+        rb_ary_push(&queue->waiting, &current_thread);
+        rb_mutex_sleep_forever(Qnil);
     }
 
     poped = rb_ary_shift(&queue->que);
@@ -4292,15 +4279,15 @@ rb_cQueue_pop(int argc, VALUE *argv, VALUE self);
  */
 
 static VALUE
-rb_cQueue_empty_p(VALUE self);
+rb_queue_empty_p(VALUE self);
 {
     VALUE result;
     Queue *queue;
     Data_Get_Struct(self, Queue, queue);
 
-    lock_mutex(&queue->mutex);
+    rb_mutex_lock(&queue->mutex);
     result = RARRAY_LEN(queue->que) == 0 ? Qtrue : Qfalse;
-    unlock_mutex(&queue->mutex);
+    rb_mutex_unlock(&queue->mutex);
 
     return result;
 }
@@ -4314,14 +4301,14 @@ rb_cQueue_empty_p(VALUE self);
  */
 
 static VALUE
-rb_cQueue_clear(VALUE self);
+rb_queue_clear(VALUE self);
 {
     Queue *queue;
     Data_Get_Struct(self, Queue, queue);
 
-    lock_mutex(&queue->mutex);
+    rb_mutex_lock(&queue->mutex);
     rb_ary_clear(&queue->que);
-    unlock_mutex(&queue->mutex);
+    rb_mutex_unlock(&queue->mutex);
 
     return self;
 }
@@ -4335,17 +4322,17 @@ rb_cQueue_clear(VALUE self);
  */
 
 static VALUE
-rb_cQueue_length(VALUE self);
+rb_queue_length(VALUE self);
 {
     long len;
     VALUE result;
     Queue *queue;
     Data_Get_Struct(self, Queue, queue);
 
-    lock_mutex(&queue->mutex);
+    rb_mutex_lock(&queue->mutex);
     len = RARRAY_LEN(queue->que);
     result = ULONG2NUM(len);
-    unlock_mutex(&queue->mutex);
+    rb_mutex_unlock(&queue->mutex);
 
     return result;
 }
@@ -4359,17 +4346,17 @@ rb_cQueue_length(VALUE self);
  */
 
 static VALUE
-rb_cQueue_num_waiting(VALUE self);
+rb_queue_num_waiting(VALUE self);
 {
     long len;
     VALUE result;
     Queue *queue;
     Data_Get_Struct(self, Queue, queue);
 
-    lock_mutex(&queue->mutex);
+    rb_mutex_lock(&queue->mutex);
     len = RARRAY_LEN(queue->waiting);
     result = ULONG2NUM(len);
-    unlock_mutex(&queue->mutex);
+    rb_mutex_unlock(&queue->mutex);
 
     return result;
 }
@@ -4381,19 +4368,19 @@ void
 Init_Queue(void)
 {
     rb_cQueue = rb_define_class("Queue", rb_cObject);
-    rb_define_alloc_func(rb_cQueue, rb_cQueue_alloc)
-    rb_define_method(rb_cQueue, "initialize", rb_cQueue_initilize, 0);
-    rb_define_method(rb_cQueue, "push", rb_cQueue_push, 1);
-    rb_define_method(rb_cQueue, "pop", rb_cQueue_pop, -1);
-    rb_define_method(rb_cQueue, "empty?", rb_cQueue_empty_p, 0);
-    rb_define_method(rb_cQueue, "clear", rb_cQueue_clear, 0);
-    rb_define_method(rb_cQueue, "length", rb_cQueue_length, 0);
-    rb_define_method(rb_cQueue, "num_waiting", rb_cQueue_num_waiting, 0);
-    rb_alias(rb_cQueue, rb_intern("enq"), rb_intern("push"));
-    rb_alias(rb_cQueue, rb_intern("<<"), rb_intern("push"));
-    rb_alias(rb_cQueue, rb_intern("deq"), rb_intern("pop"));
-    rb_alias(rb_cQueue, rb_intern("shift"), rb_intern("pop"));
-    rb_alias(rb_cQueue, rb_intern("size"), rb_intern("length"));
+    rb_define_alloc_func(rb_queue, rb_queue_alloc)
+    rb_define_method(rb_queue, "initialize", rb_queue_initilize, 0);
+    rb_define_method(rb_queue, "push", rb_queue_push, 1);
+    rb_define_method(rb_queue, "pop", rb_queue_pop, -1);
+    rb_define_method(rb_queue, "empty?", rb_queue_empty_p, 0);
+    rb_define_method(rb_queue, "clear", rb_queue_clear, 0);
+    rb_define_method(rb_queue, "length", rb_queue_length, 0);
+    rb_define_method(rb_queue, "num_waiting", rb_queue_num_waiting, 0);
+    rb_alias(rb_queue, rb_intern("enq"), rb_intern("push"));
+    rb_alias(rb_queue, rb_intern("<<"), rb_intern("push"));
+    rb_alias(rb_queue, rb_intern("deq"), rb_intern("pop"));
+    rb_alias(rb_queue, rb_intern("shift"), rb_intern("pop"));
+    rb_alias(rb_queue, rb_intern("size"), rb_intern("length"));
 }
 
 /*
