@@ -4250,7 +4250,37 @@ rb_cQueue_push(VALUE self, VALUE obj);
 static VALUE
 rb_cQueue_pop(int argc, VALUE *argv, VALUE self);
 {
-    
+    int should_block;
+    VALUE poped;
+    Queue *queue;
+    Data_Get_Struct(self, Queue, queue);
+
+    switch (argc) {
+        case 0:
+            should_block = 1;
+            break;
+        case 1:
+            should_block = !RTEST(argv[0]);
+            break
+        default:
+            rb_raise(rb_eArgError,
+                     "wrong number of arguments (%d for 1)", argc);
+    }
+
+    rb_mutex_lock(&queue->mutex);
+
+    while(!RARRAY_LEN(queue->que)) {
+        if should_block
+            rb_raise(rb_eThreadError, "queue empty");
+        rb_ary_push(rb_thread_current);
+        rb_mutex_sleep_forever;
+    }
+
+    poped = rb_ary_shift(&queue->que);
+
+    rb_mutex_unlock(&queue->mutex);
+
+    return poped;
 }
 
 /*
