@@ -4165,24 +4165,24 @@ rb_thread_backtrace_m(VALUE thval)
  */
 
 typedef struct _Queue {
-    mutex_t mutex;
+    VALUE mutex;
     VALUE que;
-    VALUE wainting;
+    VALUE waiting;
 } Queue;
 
 static void
 mark_queue(Queue *queue)
 {
-    mark_mutex(&queue->mutex);
+    /* mutex_mark(queue->mutex); */
     /* TODO: Mark arrays, if needed */
 }
 
 static void
 finalize_queue(Queue *queue)
 {
-    finalize_mutex(&queue->mutex);
-    rb_ary_free(&queue->que);
-    rb_ary_free(&queue->waiting);
+    mutex_free(&queue->mutex);
+    rb_ary_free(queue->que);
+    rb_ary_free(queue->waiting);
 }
 
 static void
@@ -4200,7 +4200,7 @@ free_queue(Queue *queue)
 static void
 init_queue(Queue *queue)
 {
-    init_mutex(&queue->mutex);
+    mutex_alloc(queue->mutex);
     queue->que = rb_ary_new();
     queue->waiting = rb_ary_new();
 }
@@ -4231,23 +4231,23 @@ rb_queue_alloc(VALUE klass)
  */
 
 static VALUE
-rb_queue_push(VALUE self, VALUE obj);
+rb_queue_push(VALUE self, VALUE obj)
 {
     VALUE thread;
     Queue *queue;
     Data_Get_Struct(self, Queue, queue);
 
-    rb_mutex_lock(&queue->mutex);
+    rb_mutex_lock(queue->mutex);
 
-    rb_ary_push(&queue->que);
+    rb_ary_push(queue->que, obj);
 
     while(RARRAY_LEN(queue->que)) {
-        thread = rb_ary_shift(&queue->waiting);
-        if thread != Qnil
-           rb_thread_wakeup(&thread);
+        thread = rb_ary_shift(queue->waiting);
+        if (thread != Qnil)
+           rb_thread_wakeup(thread);
     }
 
-    rb_mutex_unlock(&queue->mutex);
+    rb_mutex_unlock(queue->mutex);
 
     return self;
 }
@@ -4263,7 +4263,7 @@ rb_queue_push(VALUE self, VALUE obj);
  */
 
 static VALUE
-rb_queue_pop(int argc, VALUE *argv, VALUE self);
+rb_queue_pop(int argc, VALUE *argv, VALUE self)
 {
     int should_block;
     VALUE poped, current_thread;
@@ -4276,28 +4276,28 @@ rb_queue_pop(int argc, VALUE *argv, VALUE self);
             break;
         case 1:
             should_block = !RTEST(argv[0]);
-            break
+            break;
         default:
             rb_raise(rb_eArgError,
                      "wrong number of arguments (%d for 1)", argc);
     }
 
-    rb_mutex_lock(&queue->mutex);
+    rb_mutex_lock(queue->mutex);
 
     if (!RARRAY_LEN(queue->que) && !should_block) {
-        rb_mutex_unlock(&queue->mutex);
+        rb_mutex_unlock(queue->mutex);
         rb_raise(rb_eThreadError, "queue empty");
     }
 
     while(!RARRAY_LEN(queue->que)) {
         current_thread = rb_thread_current();
-        rb_ary_push(&queue->waiting, &current_thread);
+        rb_ary_push(queue->waiting, current_thread);
         rb_mutex_sleep_forever(Qnil);
     }
 
-    poped = rb_ary_shift(&queue->que);
+    poped = rb_ary_shift(queue->que);
 
-    rb_mutex_unlock(&queue->mutex);
+    rb_mutex_unlock(queue->mutex);
 
     return poped;
 }
@@ -4311,15 +4311,15 @@ rb_queue_pop(int argc, VALUE *argv, VALUE self);
  */
 
 static VALUE
-rb_queue_empty_p(VALUE self);
+rb_queue_empty_p(VALUE self)
 {
     VALUE result;
     Queue *queue;
     Data_Get_Struct(self, Queue, queue);
 
-    rb_mutex_lock(&queue->mutex);
+    rb_mutex_lock(queue->mutex);
     result = RARRAY_LEN(queue->que) == 0 ? Qtrue : Qfalse;
-    rb_mutex_unlock(&queue->mutex);
+    rb_mutex_unlock(queue->mutex);
 
     return result;
 }
@@ -4333,14 +4333,14 @@ rb_queue_empty_p(VALUE self);
  */
 
 static VALUE
-rb_queue_clear(VALUE self);
+rb_queue_clear(VALUE self)
 {
     Queue *queue;
     Data_Get_Struct(self, Queue, queue);
 
-    rb_mutex_lock(&queue->mutex);
-    rb_ary_clear(&queue->que);
-    rb_mutex_unlock(&queue->mutex);
+    rb_mutex_lock(queue->mutex);
+    rb_ary_clear(queue->que);
+    rb_mutex_unlock(queue->mutex);
 
     return self;
 }
@@ -4354,17 +4354,17 @@ rb_queue_clear(VALUE self);
  */
 
 static VALUE
-rb_queue_length(VALUE self);
+rb_queue_length(VALUE self)
 {
     long len;
     VALUE result;
     Queue *queue;
     Data_Get_Struct(self, Queue, queue);
 
-    rb_mutex_lock(&queue->mutex);
+    rb_mutex_lock(queue->mutex);
     len = RARRAY_LEN(queue->que);
     result = ULONG2NUM(len);
-    rb_mutex_unlock(&queue->mutex);
+    rb_mutex_unlock(queue->mutex);
 
     return result;
 }
@@ -4378,17 +4378,17 @@ rb_queue_length(VALUE self);
  */
 
 static VALUE
-rb_queue_num_waiting(VALUE self);
+rb_queue_num_waiting(VALUE self)
 {
     long len;
     VALUE result;
     Queue *queue;
     Data_Get_Struct(self, Queue, queue);
 
-    rb_mutex_lock(&queue->mutex);
+    rb_mutex_lock(queue->mutex);
     len = RARRAY_LEN(queue->waiting);
     result = ULONG2NUM(len);
-    rb_mutex_unlock(&queue->mutex);
+    rb_mutex_unlock(queue->mutex);
 
     return result;
 }
@@ -4482,7 +4482,6 @@ Init_Thread(void)
 
     rb_cMutex = rb_define_class("Mutex", rb_cObject);
     rb_define_alloc_func(rb_cMutex, mutex_alloc);
-    rb_define_method(rb_cMutex, "initialize", mutex_initialize, 0);
     rb_define_method(rb_cMutex, "locked?", rb_mutex_locked_p, 0);
     rb_define_method(rb_cMutex, "try_lock", rb_mutex_trylock, 0);
     rb_define_method(rb_cMutex, "lock", rb_mutex_lock, 0);
@@ -4490,19 +4489,18 @@ Init_Thread(void)
     rb_define_method(rb_cMutex, "sleep", mutex_sleep, -1);
 
     rb_cQueue = rb_define_class("Queue", rb_cObject);
-    rb_define_alloc_func(rb_queue, rb_queue_alloc)
-    rb_define_method(rb_queue, "initialize", rb_queue_initilize, 0);
-    rb_define_method(rb_queue, "push", rb_queue_push, 1);
-    rb_define_method(rb_queue, "pop", rb_queue_pop, -1);
-    rb_define_method(rb_queue, "empty?", rb_queue_empty_p, 0);
-    rb_define_method(rb_queue, "clear", rb_queue_clear, 0);
-    rb_define_method(rb_queue, "length", rb_queue_length, 0);
-    rb_define_method(rb_queue, "num_waiting", rb_queue_num_waiting, 0);
-    rb_alias(rb_queue, rb_intern("enq"), rb_intern("push"));
-    rb_alias(rb_queue, rb_intern("<<"), rb_intern("push"));
-    rb_alias(rb_queue, rb_intern("deq"), rb_intern("pop"));
-    rb_alias(rb_queue, rb_intern("shift"), rb_intern("pop"));
-    rb_alias(rb_queue, rb_intern("size"), rb_intern("length"));
+    rb_define_alloc_func(rb_cQueue, rb_queue_alloc);
+    rb_define_method(rb_cQueue, "push", rb_queue_push, 1);
+    rb_define_method(rb_cQueue, "pop", rb_queue_pop, -1);
+    rb_define_method(rb_cQueue, "empty?", rb_queue_empty_p, 0);
+    rb_define_method(rb_cQueue, "clear", rb_queue_clear, 0);
+    rb_define_method(rb_cQueue, "length", rb_queue_length, 0);
+    rb_define_method(rb_cQueue, "num_waiting", rb_queue_num_waiting, 0);
+    rb_alias(rb_cQueue, rb_intern("enq"), rb_intern("push"));
+    rb_alias(rb_cQueue, rb_intern("<<"), rb_intern("push"));
+    rb_alias(rb_cQueue, rb_intern("deq"), rb_intern("pop"));
+    rb_alias(rb_cQueue, rb_intern("shift"), rb_intern("pop"));
+    rb_alias(rb_cQueue, rb_intern("size"), rb_intern("length"));
 
     recursive_key = rb_intern("__recursive_key__");
     rb_eThreadError = rb_define_class("ThreadError", rb_eStandardError);
