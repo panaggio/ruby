@@ -4394,28 +4394,6 @@ rb_queue_num_waiting(VALUE self);
 }
 
 /*
- * TODO: merge with Init_Thread
- */
-void
-Init_Queue(void)
-{
-    rb_cQueue = rb_define_class("Queue", rb_cObject);
-    rb_define_alloc_func(rb_queue, rb_queue_alloc)
-    rb_define_method(rb_queue, "initialize", rb_queue_initilize, 0);
-    rb_define_method(rb_queue, "push", rb_queue_push, 1);
-    rb_define_method(rb_queue, "pop", rb_queue_pop, -1);
-    rb_define_method(rb_queue, "empty?", rb_queue_empty_p, 0);
-    rb_define_method(rb_queue, "clear", rb_queue_clear, 0);
-    rb_define_method(rb_queue, "length", rb_queue_length, 0);
-    rb_define_method(rb_queue, "num_waiting", rb_queue_num_waiting, 0);
-    rb_alias(rb_queue, rb_intern("enq"), rb_intern("push"));
-    rb_alias(rb_queue, rb_intern("<<"), rb_intern("push"));
-    rb_alias(rb_queue, rb_intern("deq"), rb_intern("pop"));
-    rb_alias(rb_queue, rb_intern("shift"), rb_intern("pop"));
-    rb_alias(rb_queue, rb_intern("size"), rb_intern("length"));
-}
-
-/*
  *  Document-class: ThreadError
  *
  *  Raised when an invalid operation is attempted on a thread.
@@ -4510,6 +4488,21 @@ Init_Thread(void)
     rb_define_method(rb_cMutex, "lock", rb_mutex_lock, 0);
     rb_define_method(rb_cMutex, "unlock", rb_mutex_unlock, 0);
     rb_define_method(rb_cMutex, "sleep", mutex_sleep, -1);
+
+    rb_cQueue = rb_define_class("Queue", rb_cObject);
+    rb_define_alloc_func(rb_queue, rb_queue_alloc)
+    rb_define_method(rb_queue, "initialize", rb_queue_initilize, 0);
+    rb_define_method(rb_queue, "push", rb_queue_push, 1);
+    rb_define_method(rb_queue, "pop", rb_queue_pop, -1);
+    rb_define_method(rb_queue, "empty?", rb_queue_empty_p, 0);
+    rb_define_method(rb_queue, "clear", rb_queue_clear, 0);
+    rb_define_method(rb_queue, "length", rb_queue_length, 0);
+    rb_define_method(rb_queue, "num_waiting", rb_queue_num_waiting, 0);
+    rb_alias(rb_queue, rb_intern("enq"), rb_intern("push"));
+    rb_alias(rb_queue, rb_intern("<<"), rb_intern("push"));
+    rb_alias(rb_queue, rb_intern("deq"), rb_intern("pop"));
+    rb_alias(rb_queue, rb_intern("shift"), rb_intern("pop"));
+    rb_alias(rb_queue, rb_intern("size"), rb_intern("length"));
 
     recursive_key = rb_intern("__recursive_key__");
     rb_eThreadError = rb_define_class("ThreadError", rb_eStandardError);
