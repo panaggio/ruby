@@ -4167,14 +4167,43 @@ rb_thread_backtrace_m(VALUE thval)
 typedef struct _Queue {
     mutex_t mutex;
     VALUE que;
+    VALUE wainting;
 } Queue;
 
-static VALUE
-rb_queue_alloc(VALUE klass)
+static void
+mark_queue(Queue *queue)
 {
-    
+    mark_mutex(&queue->mutex);
+    /* TODO: Mark arrays, if needed */
 }
 
+static void
+finalize_queue(Queue *queue)
+{
+    finalize_mutex(&queue->mutex);
+    rb_ary_free(&queue->que);
+    rb_ary_free(&queue->waiting);
+}
+
+static void
+free_queue(Queue *queue)
+{
+    int i=0;
+    int size = RARRAY_LEN(queue->waiting);
+    for (i=0; i<size; i++) {
+        rb_thread_kill(rb_ary_entry(queue->waiting, i));
+    }
+    finalize_queue(queue);
+    xfree(queue);
+}
+
+static void
+init_queue(Queue *queue)
+{
+    init_mutex(&queue->mutex);
+    queue->que = rb_ary_new();
+    queue->waiting = rb_ary_new();
+}
 
 /*
  * Document-method: new
@@ -4185,9 +4214,12 @@ rb_queue_alloc(VALUE klass)
  */
 
 static VALUE
-rb_queue_initialize(VALUE klass)
+rb_queue_alloc(VALUE klass)
 {
-    
+    Queue *queue;
+    queue = ALLOC(Queue);
+    init_queue(queue);
+    return Data_Wrap_Struct(klass, mark_queue, free_queue, queue);
 }
 
 /*
