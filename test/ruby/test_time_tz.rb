@@ -18,7 +18,7 @@ class TestTimeTZ < Test::Unit::TestCase
   end
 
   module Util
-    def format_gmtoff(gmtoff)
+    def format_gmtoff(gmtoff, colon=false)
       if gmtoff < 0
         expected = "-"
         gmtoff = -gmtoff
@@ -26,7 +26,20 @@ class TestTimeTZ < Test::Unit::TestCase
         expected = "+"
       end
       gmtoff /= 60
-      expected << "%02d%02d" % [gmtoff / 60, gmtoff % 60]
+      expected << "%02d" % [gmtoff / 60]
+      expected << ":" if colon
+      expected << "%02d" % [gmtoff % 60]
+      expected
+    end
+
+    def format_gmtoff2(gmtoff)
+      if gmtoff < 0
+        expected = "-"
+        gmtoff = -gmtoff
+      else
+        expected = "+"
+      end
+      expected << "%02d:%02d:%02d" % [gmtoff / 3600, gmtoff % 3600 / 60, gmtoff % 60]
       expected
     end
 
@@ -134,6 +147,23 @@ class TestTimeTZ < Test::Unit::TestCase
     }
   end
 
+  def test_right_utc
+    with_tz(tz="right/UTC") {
+      assert_time_constructor(tz, "2008-12-31 23:59:59 UTC", :utc, [2008,12,31,23,59,59])
+      assert_time_constructor(tz, "2008-12-31 23:59:60 UTC", :utc, [2008,12,31,23,59,60])
+      assert_time_constructor(tz, "2009-01-01 00:00:00 UTC", :utc, [2008,12,31,24,0,0])
+      assert_time_constructor(tz, "2009-01-01 00:00:00 UTC", :utc, [2009,1,1,0,0,0])
+    }
+  end
+
+  def test_right_america_los_angeles
+    with_tz(tz="right/America/Los_Angeles") {
+      assert_time_constructor(tz, "2008-12-31 15:59:59 -0800", :local, [2008,12,31,15,59,59])
+      assert_time_constructor(tz, "2008-12-31 15:59:60 -0800", :local, [2008,12,31,15,59,60])
+      assert_time_constructor(tz, "2008-12-31 16:00:00 -0800", :local, [2008,12,31,16,0,0])
+    }
+  end
+
   MON2NUM = {
     "Jan" => 1, "Feb" => 2, "Mar" => 3, "Apr" => 4, "May" => 5, "Jun" => 6,
     "Jul" => 7, "Aug" => 8, "Sep" => 9, "Oct" => 10, "Nov" => 11, "Dec" => 12
@@ -189,6 +219,9 @@ class TestTimeTZ < Test::Unit::TestCase
           assert_nothing_raised(mesg) { t.localtime }
           assert_equal(expected, time_to_s(t), mesg)
           assert_equal(gmtoff, t.gmtoff)
+          assert_equal(format_gmtoff(gmtoff), t.strftime("%z"))
+          assert_equal(format_gmtoff(gmtoff, true), t.strftime("%:z"))
+          assert_equal(format_gmtoff2(gmtoff), t.strftime("%::z"))
         }
       }
     }
@@ -289,6 +322,7 @@ right/America/Los_Angeles  Wed Dec 31 23:59:60 2008 UTC = Wed Dec 31 15:59:60 20
 #right/Asia/Tokyo  Sat Dec 31 23:59:60 2005 UTC = Sun Jan  1 08:59:60 2006 JST isdst=0 gmtoff=32400
 right/Europe/Paris  Fri Jun 30 23:59:60 1972 UTC = Sat Jul  1 00:59:60 1972 CET isdst=0 gmtoff=3600
 right/Europe/Paris  Wed Dec 31 23:59:60 2008 UTC = Thu Jan  1 00:59:60 2009 CET isdst=0 gmtoff=3600
+Europe/Lisbon  Mon Jan  1 00:36:31 1912 UTC = Sun Dec 31 23:59:59 1911 LMT isdst=0 gmtoff=-2192
 End
   gen_zdump_test
 end

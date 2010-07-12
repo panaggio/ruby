@@ -97,6 +97,53 @@ ruby_getnameinfo__aix(const struct sockaddr *sa, size_t salen,
             ruby_getnameinfo__aix((sa), (salen), (host), (hostlen), (serv), (servlen), (flags))
 #endif
 
+static int str_is_number(const char *);
+
+#if defined(__APPLE__)
+static int
+ruby_getaddrinfo__darwin(const char *nodename, const char *servname,
+			 struct addrinfo *hints, struct addrinfo **res)
+{
+    /* fix [ruby-core:29427] */
+    const char *tmp_servname;
+    struct addrinfo tmp_hints;
+    tmp_servname = servname;
+    MEMCPY(&tmp_hints, hints, struct addrinfo, 1);
+    if (nodename && servname) {
+	if (str_is_number(tmp_servname) && atoi(servname) == 0) {
+	    tmp_servname = NULL;
+#ifdef AI_NUMERICSERV
+	    if (tmp_hints.ai_flags) tmp_hints.ai_flags &= ~AI_NUMERICSERV;
+#endif
+	}
+    }
+    int error = getaddrinfo(nodename, tmp_servname, &tmp_hints, res);
+
+    if (error == 0)
+    {
+        /* [ruby-dev:23164] */
+        struct addrinfo *r;
+        r = *res;
+        while (r) {
+            if (! r->ai_socktype) r->ai_socktype = hints->ai_socktype;
+            if (! r->ai_protocol) {
+                if (r->ai_socktype == SOCK_DGRAM) {
+                    r->ai_protocol = IPPROTO_UDP;
+                }
+                else if (r->ai_socktype == SOCK_STREAM) {
+                    r->ai_protocol = IPPROTO_TCP;
+                }
+            }
+            r = r->ai_next;
+        }
+    }
+
+    return error;
+}
+#undef getaddrinfo
+#define getaddrinfo(node,serv,hints,res) ruby_getaddrinfo__darwin((node),(serv),(hints),(res))
+#endif
+
 #ifndef GETADDRINFO_EMU
 struct getaddrinfo_arg
 {
@@ -212,7 +259,7 @@ make_inetaddr(unsigned int host, char *buf, size_t len)
 }
 
 static int
-str_isnumber(const char *p)
+str_is_number(const char *p)
 {
     char *ep;
 
@@ -302,7 +349,7 @@ rsock_getaddrinfo(VALUE host, VALUE port, struct addrinfo *hints, int socktype_h
     hostp = host_str(host, hbuf, sizeof(hbuf), &additional_flags);
     portp = port_str(port, pbuf, sizeof(pbuf), &additional_flags);
 
-    if (socktype_hack && hints->ai_socktype == 0 && str_isnumber(portp)) {
+    if (socktype_hack && hints->ai_socktype == 0 && str_is_number(portp)) {
        hints->ai_socktype = SOCK_DGRAM;
     }
     hints->ai_flags |= additional_flags;
@@ -315,24 +362,6 @@ rsock_getaddrinfo(VALUE host, VALUE port, struct addrinfo *hints, int socktype_h
         rsock_raise_socket_error("getaddrinfo", error);
     }
 
-#if defined(__APPLE__) && defined(__MACH__)
-    {
-        struct addrinfo *r;
-        r = res;
-        while (r) {
-            if (! r->ai_socktype) r->ai_socktype = hints->ai_socktype;
-            if (! r->ai_protocol) {
-                if (r->ai_socktype == SOCK_DGRAM) {
-                    r->ai_protocol = IPPROTO_UDP;
-                }
-                else if (r->ai_socktype == SOCK_STREAM) {
-                    r->ai_protocol = IPPROTO_TCP;
-                }
-            }
-            r = r->ai_next;
-        }
-    }
-#endif
     return res;
 }
 

@@ -1,3 +1,522 @@
+Mon Jul 12 01:58:56 2010  Marc-Andre Lafortune  <ruby-core@marc-andre.ca>
+
+	* lib/csv.rb: Fix unused variable warnings.
+	  Patch by Run Paint [ruby-core:30991]
+	
+	* lib/date.rb: ditto
+	
+	* lib/debug.rb: ditto
+	
+	* lib/drb/drb.rb: ditto
+	
+	* lib/drb/invokemethod.rb: ditto
+	
+	* lib/irb/ruby-lex.rb: ditto
+	
+	* lib/irb/slex.rb: ditto
+	
+	* lib/logger.rb: ditto
+	
+	* lib/pathname.rb: ditto
+
+Sun Jul 11 21:20:27 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* README.EXT{,.ja} (rb_block_call): fixed about third/fourth
+	  arguments to the block.  based on [ruby-core:31192] by Asher
+	  Haig.  [Bug #3558]
+
+Sun Jul 11 17:01:57 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* Makefile.in ({,dist-,real-}clean-ext): should also omit
+	  semicolon when omitting "in WORDS" of FOR-statement.
+
+	* tool/rmdirs: ditto.
+
+Sun Jul 11 11:07:42 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+
+	* test/rdoc/test_rdoc_ri_driver.rb (test_formatter): add a test.  a
+	  patch from caleb clausen in [ruby-core:31182].
+
+Sat Jul 10 21:43:11 2010  Tanaka Akira  <akr@fsij.org>
+
+	* strftime.c (rb_strftime_with_timespec): fix precision handling for
+	  %:z and %::z.
+
+Fri Jul  9 22:32:54 2010  Tanaka Akira  <akr@fsij.org>
+
+	* strftime.c: unused declarations removed.
+
+Fri Jul  9 21:20:22 2010  Tanaka Akira  <akr@fsij.org>
+
+	* strftime.c (rb_strftime_with_timespec): clear colons at unknown
+	  directive.
+
+Fri Jul  9 21:04:10 2010  Tanaka Akira  <akr@fsij.org>
+
+	* strftime.c: don't call tzset.  strftime.c doesn't depend on
+	  the global timezone.
+
+Fri Jul  9 20:30:26 2010  Tanaka Akira  <akr@fsij.org>
+
+	* time.c (find_time_t): 24:00 should be the beginning of the next
+	  day even if the leap second, 23:59:60, exists.
+
+Fri Jul  9 01:08:46 2010  Aaron Patterson <aaron@tenderlovemaking.com>
+
+	* ext/psych/lib/psych/visitors/emitter.rb (initialize): line_width is
+	  a valid option passed to the emitter.
+	
+	* test/psych/test_psych.rb: corresponding tests.
+
+Fri Jul  9 00:49:46 2010  Aaron Patterson <aaron@tenderlovemaking.com>
+
+	* ext/psych/emitter.c (line_width, set_line_width): preferred line may
+	  be set on the emitter.
+
+	* test/psych/test_emitter.rb: corresponding tests.
+
+Thu Jul  8 15:47:34 2010  NARUSE, Yui  <naruse@ruby-lang.org>
+
+	* string.c (rb_str_conv_enc_opts): fix infinite loop because
+	  of ISO-2022-JP conversion with empty string.
+	  patched by Brian Buchanan [ruby-core:31107]
+
+Thu Jul  8 08:16:57 2010  Aaron Patterson <aaron@tenderlovemaking.com>
+
+	* ext/psych/lib/psych/visitors/yaml_tree.rb (push): adding version
+	  and header emit options.
+
+	* test/psych/test_psych.rb: corresponding test.
+
+Thu Jul  8 08:01:03 2010  Aaron Patterson <aaron@tenderlovemaking.com>
+
+	* ext/psych/emitter.c: updating documentation about emit options
+
+	* ext/psych/lib/psych/core_ext.rb: ditto
+
+	* ext/psych/lib/psych.rb (dump): passing emit options to emitter.
+
+	* ext/psych/lib/psych/nodes/node.rb: ditto
+
+	* ext/psych/lib/psych/visitors/emitter.rb: sending emit options to
+	  YAML emitter. [ruby-core:28318]
+
+Thu Jul  8 06:05:58 2010  Tanaka Akira  <akr@fsij.org>
+
+	* strftime.c (rb_strftime_with_timespec): support %:z and %::z.
+	  [ruby-dev:41841]
+
+Thu Jul  8 00:15:50 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+
+	* gem_prelude.rb: provide workaround for gem activation.  Currently,
+	  gem activation does not work by default.  Now it can be worked
+	  around by requiring "rubygems" first.  [ruby-core:29486]
+	  a patch from Evan Phoenix in [ruby-core:31096].
+
+	* lib/rubygems.rb: ditto.
+
+Wed Jul  7 10:01:34 2010  Adrian Bloomer  <adrian.bloomer@gmail.com>
+
+	* numeric.c (fix_rev): Replaced fix_rev with '~num | FIXNUM_FLAG'.
+
+Wed Jul  7 13:22:20 2010  NAKAMURA Usaku  <usa@ruby-lang.org>
+
+	* file.c (ruby_find_basename): set correct baselen.
+
+Wed Jul  7 13:02:59 2010  Akinori MUSHA  <knu@iDaemons.org>
+
+	* vm_method.c (rb_method_boundp): respond_to?(:protected_method,
+	  true) should return true.  Pointed out by Marc-Andre Lafortune.
+	  [ruby-dev:41837]
+
+Wed Jul  7 12:00:24 2010  NAKAMURA Usaku  <usa@ruby-lang.org>
+
+	* file.c (ruby_find_basename): should initialize f.
+
+Wed Jul  7 11:44:01 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* ext/zlib/zlib.c (gzfile_raise): add invalid header to
+	  exceptions.
+
+Wed Jul  7 10:26:20 2010  NARUSE, Yui  <naruse@ruby-lang.org>
+
+	* missing/close.c: ignore ECONNRESET.
+	  FreeBSD wrongly sets ECONNRESET on close(2) and
+	  it causes false-negative exceptions. [ruby-dev:41778]
+
+	* configure.in: ditto.
+Tue Jul  6 22:57:21 2010  Tanaka Akira  <akr@fsij.org>
+
+	* io.c (nogvl_copy_stream_sendfile): jump to retry_sendfile directly
+	  to avoid select() on a socket which TCP state is CLOSED.
+	  patch by Eric Wong.  [ruby-core:31053]
+
+Tue Jul  6 21:45:34 2010  NAKAMURA Usaku  <usa@ruby-lang.org>
+
+	* io/console/console.c (winsize_row): should return actual screen
+	  size, not buffer size.
+
+Tue Jul  6 08:35:58 2010  Aaron Patterson <aaron@tenderlovemaking.com>
+
+	* ext/dl/lib/dl/import.rb (handler): add a more helpful error message
+	  when calling import_symbol or import_function without calling
+	  dlload.  Thanks nobu! [ruby-core:30996]
+
+Tue Jul  6 00:34:50 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+
+	* vm.c (thread_free): free altstack to prevent memory leak.  a patch
+	  from Tomoyuki Chikanaga in [ruby-dev:41815]. [Bug #3537]
+
+Tue Jul  6 00:29:27 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+
+	* string.c (NONASCII_MASK): NONASCII_MASK must be unsigned.
+	  [ruby-dev:41782]
+
+Mon Jul  5 16:05:39 2010  Akinori MUSHA  <knu@iDaemons.org>
+
+	* vm_method.c (rb_method_boundp): Return false for protected
+	  methods when called from Kernel#respond_to?. [ruby-dev:40461]
+
+Mon Jul  5 12:32:01 2010  Aaron Patterson <aaron@tenderlovemaking.com>
+
+	* ext/psych/lib/psych/scalar_scanner.rb (parse_string): support
+	  timezones that are not one hour off. [ruby-core:31023]
+
+	* ext/psych/lib/psych/visitors/yaml_tree.rb: ditto
+
+Sun Jul  4 22:49:54 2010  Tanaka Akira  <akr@fsij.org>
+
+	* test/ruby/test_syntax.rb: split test_syntax from test_system.rb.
+
+Sun Jul  4 22:02:02 2010  Tanaka Akira  <akr@fsij.org>
+
+	* test/ruby/test_system.rb (test_syntax): unified with test_syntax2.
+
+Sun Jul  4 21:00:39 2010  Tanaka Akira  <akr@fsij.org>
+
+	* test/ruby/test_system.rb (test_syntax2): moved from sample/test.rb
+	  [ruby-dev:41721]
+
+Sun Jul  4 17:13:14 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* io.c (swallow, prepare_getline_args, rb_io_getline_1): fix for
+	  paragraph mode reading in non-ascii-compatible encoding.
+	  [ruby-dev:41803]
+
+Sat Jul  3 16:14:10 2010  Kenta Murata  <mrkn@mrkn.jp>
+
+	* ext/bigdecimal/bigdecimal.c (Init_bigdecimal): add two new constants
+	  BigDecimal::INFINITY and BigDecimal::NAN.
+
+	* ext/bigdecimal/lib/bigdecimal/math.rb (BigMath.exp): modify the
+	  behaviors for infinity arguments as same as Math.exp.
+
+Sat Jul  3 09:47:26 2010  Aaron Patterson  <aaron@tenderlovemaking.com>
+
+	* ext/psych/lib/psych/visitors/to_ruby.rb(visit_Psych_Nodes_Scalar):
+	  teaching Psych to deserialize DateTime objects. [Bug #1390]
+
+	* ext/psych/lib/psych/visitors/yaml_tree.rb(visit_DateTime): added a
+	  method for serializing DateTime objects.
+
+	* ext/psych/lib/psych/scalar_scanner.rb(parse_time): add method for
+	  parsing times objects from a string.
+
+	* test/psych/test_date_time.rb: tests for dumping DateTime objects.
+
+Sat Jul  3 09:13:55 2010  Aaron Patterson  <aaron@tenderlovemaking.com>
+
+	* ext/psych/lib/psych/visitors/yaml_tree.rb (visit_Time): use
+	  Time#nsec to accurately serialize time objects. [ruby-core:29233]
+
+Fri Jul  2 23:30:23 2010  NAKAMURA Usaku  <usa@ruby-lang.org>
+
+	* io.c (argf_inplace_mode_set): prohibits an assignment of a tainted
+	  value.
+
+	* file.c (ruby_find_basename, ruby_find_extname): split from
+	  rb_file_s_basename() and rb_file_s_extname().
+
+	* util.c (ruby_add_suffix): support arbitrary length of the suffix
+	  to get rid of the potential buffer overflow.
+	  reported by tarui.
+
+Fri Jul  2 05:31:51 2010  Tanaka Akira  <akr@fsij.org>
+
+	* numeric.c (rb_num2long): accept LONG_MAX < x < LONG_MAX+1 and
+	  LONG_MIN-1 < x < LONG_MIN as well because they are converted
+	  into the valid range of long by truncation.
+	  (rb_num2ulong): accept ULONG_MAX < x < ULONG_MAX+1 and
+	  LONG_MIN-1 < x < LONG_MIN as well.
+	  (rb_num2ll): accept LLONG_MAX < x < LLONG_MAX+1 and
+	  LLONG_MIN-1 < x < LLONG_MIN.
+
+Thu Jul  1 23:10:25 2010  James Edward Gray II  <jeg2@ruby-lang.org>
+
+	* lib/csv.rb: Improving documentation.
+
+Thu Jul  1 22:15:01 2010  Tanaka Akira  <akr@fsij.org>
+
+	* numeric.c (rb_num2ulong): fix the lower limit for float.
+	  [ruby-dev:41361]
+
+Thu Jul  1 21:37:11 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* test/ruby/envutil.rb (EnvUtil#invoke_ruby): integrated with
+	  runexec.
+
+Thu Jul  1 16:19:53 2010  NARUSE, Yui  <naruse@ruby-lang.org>
+
+	* thread_pthread.c (thread_start_func_1): don't call
+	  native_thread_init_stack(th) on cygwin to avoid the segv
+	  introduced by r27789. Cygwin's signal implementation is half
+	  baked so USE_SIGNALSTACK is not defined and it needs another
+	  treatment.
+
+Thu Jul  1 13:00:54 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* common.mk (test-knownbug): ignore known bugs.
+
+Thu Jul  1 08:40:26 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* marshal.c (w_object): suppress empty instance variable entry on
+	  compatible dump objects.
+
+Wed Jun 30 07:29:11 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* test/ruby/test_rubyoptions.rb (test_script_from_stdin): by using
+	  a pipe, get rid of not-well-defined behavior after the child
+	  process terminated in pty.
+
+Wed Jun 30 02:30:26 2010  Yutaka Kanemoto  <kanemoto@ruby-lang.org>
+
+	* thread_pthread.c (get_stack): use pthread_getthrds_np() for AIX.
+
+	* configure.in: ditto.
+
+Tue Jun 29 21:11:15 2010  Masaya Tarui  <tarui@ruby-lnag.org>
+
+	* ext/stringio/stringio.c (strio_write): add RB_GC_GUARD.
+
+Tue Jun 29 19:39:59 2010  Masaki Suketa <masaki.suketa@nifty.ne.jp>
+
+	* test/win32ole/test_win32ole_method.rb (is_ruby64): check
+	  ruby binary is mswin64 or mingw64. [ruby-dev:41756]
+
+Tue Jun 29 14:18:21 2010  NAKAMURA Usaku  <usa@ruby-lang.org>
+
+	* file.c (rb_realpath_internal, realpath_rec): skip UNC share root
+	  on DOSISH platforms.
+	  http://pc12.2ch.net/test/read.cgi/tech/1272248179/600
+
+Tue Jun 29 11:52:33 2010  Narihiro Nakamura  <authorNari@gmail.com>
+
+	* gc.c (unlink_heap_slot, slot_sweep): unlink heaps_slot of
+	  heaps_slot linked list if heaps_slot is empty at slot_sweep.
+	  fixed [ruby-dev:41543], [ruby-core:24894].
+
+Tue Jun 29 01:22:08 2010  Aaron Patterson <aaron@tenderlovemaking.com>
+
+	* ext/fiddle/fiddle.h: added FFI type detection to avoid bug in ffi
+	  header files. Thanks Yugui! [ruby-core:30917]
+
+Mon Jun 28 22:14:22 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+
+	* test/rdoc/test_rdoc_ri_driver.rb (TestRDocRIDriver#test_formatter):
+	  fix a test accordingly to r28455.
+
+Mon Jun 28 21:56:14 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+
+	* thread.c (rb_fd_resize, rb_fd_copy): avoid NULL dereference upon
+	  failed realloc by using xrealloc instead of not realloc.  a patch
+	  from Jim Meyering <meyering at redhat.com> in [ruby-core:30920]
+	  [Bug #3489]
+
+Mon Jun 28 20:32:33 2010  Masaki Suketa <masaki.suketa@nifty.ne.jp>
+
+	* test/win32ole/test_win32ole_method.rb (test_offset_vtbl): check
+	  that Ruby is 32bit or 64bit binary in order to get correct offset
+	  value. [ruby-dev:41741]
+
+Mon Jun 28 05:32:51 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+
+	* lib/rdoc/ri/driver.rb (RDoc::RI::Driver#formatter): should use bs
+	  format when stdout is piped.  [ruby-core:30734]
+
+Mon Jun 28 03:12:03 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+
+	* bootstraptest/test_class.rb: add a test for [ruby-core:30843].
+
+Mon Jun 28 02:43:35 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+
+	* class.c (rb_mod_init_copy): when class is dup'ed, a metaclass of the
+	  class should be attached to the dup'ed class, not the original
+	  class.  [ruby-core:30843] [Bug #3461]
+
+Sun Jun 27 23:31:17 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* include/ruby/io.h, io.c: reverted r21709.
+
+	* ruby.c (load_file_internal): nothing to read if EOF reached
+	  while reading shebang.  [ruby-core:30910]
+
+Sun Jun 27 13:25:07 2010  Tanaka Akira  <akr@fsij.org>
+
+	* io.c (simple_sendfile): don't try to send data more than SSIZE_MAX
+	  with single sendfile call..
+	  based on the patch by Eric Wong.  [ruby-core:30908]
+
+Sun Jun 27 10:41:38 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* lib/rubygems/require_paths_builder.rb (write_require_paths_file_if_needed):
+	  no reason that bin directory should be included in $LOAD_PATH.
+	  it is for executable files, but not libraries.  [ruby-core:25936]
+
+Sat Jun 26 13:07:09 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* configure.in (enable-debug-env): option for RUBY_DEBUG env.
+
+Sat Jun 26 11:56:31 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* common.mk (clear-installed-list): put redirection before set
+	  command, since it seems to be handled by nmake in special way.
+	  [ruby-dev:41711]
+
+Sat Jun 26 10:08:36 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* test/ruby/envutil.rb (EnvUtil#invoke_ruby): no needs to copy the
+	  original ENV, since it's done in spawn automatically.
+	  [ruby-dev:41733]
+
+Sat Jun 26 08:44:22 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+
+	* NEWS (zlib): new methods.  [ruby-dev:41706] [Bug #3472]
+
+Sat Jun 26 07:59:18 2010  Masaki Suketa <masaki.suketa@nifty.ne.jp>
+
+	* test/win32ole/test_win32ole_method.rb (test_offset_vtbl): check
+	  that OS is Windows 32bit or Windows 64bit in order to get
+	  correct offset value.
+
+Sat Jun 26 04:39:12 2010  Masaya Tarui  <tarui@ruby-lnag.org>
+
+	* ext/dl/lib/dl/func.rb (call): don't overwrite original arguments
+	  to defend from GC.
+	* test/dl/test_func.rb (test_string): add test for above.
+
+Fri Jun 25 11:45:36 2010  James Edward Gray II  <jeg2@ruby-lang.org>
+
+	* lib/csv.rb: Fixing a bug that prevented CSV from parsing
+	  all multi-line fields correctly.  Patch by Rob Biedenharn.
+
+Fri Jun 25 10:07:14 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* test/ruby/envutil.rb (Test::Unit::Assertions#assert_in_out_err):
+	  return the exit status.
+
+	* test/ruby/envutil.rb (EnvUtil#invoke_ruby): change the
+	  environment of spawned process only.
+
+	* test/ruby/envutil.rb (EnvUtil#invoke_ruby): get rid of possible
+	  deadlock.
+
+Fri Jun 25 06:24:25 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* lib/un.rb (httpd): MaxClients also should be integer.
+	  [ruby-dev:41724] [Bug #3477]
+
+	* lib/un.rb (setup): fix of word splitting.  [ruby-dev:41723]
+	  [Bug #3476]
+
+Fri Jun 25 01:07:17 2010  Masaya Tarui  <tarui@ruby-lnag.org>
+
+	* include/ruby/ruby.h (static inline rb_gc_guarded_ptr): prevent
+	  RB_GC_GUARD_PTR being removed by optimization.
+
+Thu Jun 24 06:22:27 2010  Tanaka Akira  <akr@fsij.org>
+
+	* ext/socket/raddrinfo.c (ruby_getaddrinfo__darwin): the workaround
+	  for Mac OS X moved from rsock_getaddrinfo.
+
+Thu Jun 24 05:44:27 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* marshal.c (struct dump_arg, struct load_arg): merge taint and
+	  untrust flags into infection as bit flags.
+
+	* marshal.c (w_nbyte, clear_dump_arg): infect the buffer as soon
+	  as appending, because it might have been finalized already at
+	  exit.  based on a patch by Tomoyuki Chikanaga
+	  at [ruby-dev:41672].  [Bug #3463]
+
+Wed Jun 23 23:49:21 2010  Tanaka Akira  <akr@fsij.org>
+
+	* ext/socket/raddrinfo.c (str_is_number): renamed from str_isnumber to
+	  avoid confusion to str_isnumber in ext/socket/getaddrinfo.c.
+
+Wed Jun 23 23:45:31 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+
+	* NEWS (stringio): new methods.  [ruby-dev:41687] [Bug #3469]
+
+Wed Jun 23 22:52:00 2010  Tanaka Akira  <akr@fsij.org>
+
+	* ext/socket/raddrinfo.c: don't use __P.
+
+Wed Jun 23 21:32:08 2010  Masaki Suketa <masaki.suketa@nifty.ne.jp>
+
+	* ext/win32ole/win32ole.c (reg_get_typelib_file_path): try win64
+	  registry entry at first. [ruby-dev:41674] [Bug #3464]
+
+Wed Jun 23 21:17:32 2010  Tanaka Akira  <akr@fsij.org>
+
+	* ext/socket/raddrinfo.c (ruby_getaddrinfo__darwin): new workaround for
+	  getaddrinfo problem on Mac OS X Snow Leopard.  [ruby-core:29427]
+	  patch by Wataru Kimura.  [ruby-core:30842]
+
+Wed Jun 23 17:12:27 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* NEWS (ptr): new method and deprecated methods.  [ruby-dev:41681]
+
+	* ext/pty/{README,README.ja}: ditto.
+
+	* ext/pty/pty.c (pty_check): add rdoc.
+
+Wed Jun 23 12:44:47 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* test/ruby/test_regexp.rb (test_dup_warn): read in UTF-8
+	  encoding regardless environment.
+
+	* test/ruby/envutil.rb (invoke_ruby): add encoding option.
+
+Wed Jun 23 06:44:05 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* configure.in (fchown): need to check.  a patch by Eric Wong
+	  at [ruby-core:30818].
+
+	* io.c (argf_next_argv): check for setting owner/group.
+
+Tue Jun 22 23:10:10 2010  Tanaka Akira  <akr@fsij.org>
+
+	* time.c (num_exact): fix for mathn.  [ruby-dev:41599]
+
+Tue Jun 22 22:00:06 2010  Tanaka Akira  <akr@fsij.org>
+
+	* ext/socket/lib/socket.rb: suppress warnings.
+
+Tue Jun 22 21:33:23 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* test/optparse/test_summary.rb: fixed superclass so that it run
+	  solely.
+
+Tue Jun 22 19:57:33 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* parse.y (shadowing_lvar_gen): should add lvar to vars and
+	  used.  [ruby-dev:41666]
+
+Tue Jun 22 13:23:13 2010  Marc-Andre Lafortune  <ruby-core@marc-andre.ca>
+
+	* lib/delegate.rb: Forward #trust, #untrust, #taint and #untaint
+	  to both the delegator and __getobj__ [ruby-core:26138]
+
 Mon Jun 21 23:41:08 2010  wanabe  <s.wanabe@gmail.com>
 
 	* eval_error.c (error_print): clear raised_flag while error-printing
@@ -481,7 +1000,7 @@ Mon May 31 23:44:22 2010  Hidetoshi NAGAI  <nagai@ai.kyutech.ac.jp>
 
 	* ext/tk/stubs.c: dirty hack for frameworks and stubs on MacOS X.
 
-	* ext/tk/lib/tk.rb: stop creating a dummy Tcl/Tk interpreter. 
+	* ext/tk/lib/tk.rb: stop creating a dummy Tcl/Tk interpreter.
 	  And hide a root window before starting eventloop. (for ruby 1.9)
 
 	* ext/tk/tcltklib.c: add codes to support Ruby/Tk-Kit (Rubykit).

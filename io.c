@@ -398,9 +398,7 @@ flush_before_seek(rb_io_t *fptr)
     return fptr;
 }
 
-#define io_set_eof(fptr) (void)(((fptr)->mode & FMODE_TTY) && ((fptr)->mode |= FMODE_EOF))
-#define io_unset_eof(fptr) (fptr->mode &= ~FMODE_EOF)
-#define io_seek(fptr, ofs, whence) (errno = 0, io_unset_eof(fptr), lseek(flush_before_seek(fptr)->fd, ofs, whence))
+#define io_seek(fptr, ofs, whence) (errno = 0, lseek(flush_before_seek(fptr)->fd, ofs, whence))
 #define io_tell(fptr) lseek(flush_before_seek(fptr)->fd, 0, SEEK_CUR)
 
 #ifndef SEEK_CUR
@@ -1203,9 +1201,6 @@ io_fillbuf(rb_io_t *fptr)
 {
     ssize_t r;
 
-    if (fptr->mode & FMODE_EOF) {
-	return -1;
-    }
     if (fptr->rbuf == NULL) {
         fptr->rbuf_off = 0;
         fptr->rbuf_len = 0;
@@ -1224,10 +1219,8 @@ io_fillbuf(rb_io_t *fptr)
         }
         fptr->rbuf_off = 0;
         fptr->rbuf_len = (int)r; /* r should be <= rbuf_capa */
-        if (r == 0) {
-	    io_set_eof(fptr);
+        if (r == 0)
             return -1; /* EOF */
-	}
     }
     return 0;
 }
@@ -1533,10 +1526,7 @@ io_fread(VALUE str, long offset, rb_io_t *fptr)
 	while (n > 0) {
           again:
 	    c = rb_read_internal(fptr->fd, RSTRING_PTR(str)+offset, n);
-	    if (c == 0) {
-		io_set_eof(fptr);
-		break;
-	    }
+	    if (c == 0) break;
 	    if (c < 0) {
                 if (rb_io_wait_readable(fptr->fd))
                     goto again;
@@ -1870,9 +1860,6 @@ io_getpartial(int argc, VALUE *argv, VALUE io, int nonblock)
                 rb_mod_sys_fail(rb_mWaitReadable, "read would block");
             rb_sys_fail_path(fptr->pathv);
         }
-	else if (n == 0) {
-	    io_set_eof(fptr);
-	}
     }
     rb_str_resize(str, n);
 
@@ -2302,8 +2289,9 @@ swallow(rb_io_t *fptr, int term)
 	    while ((cnt = READ_CHAR_PENDING_COUNT(fptr)) > 0) {
 		const char *p = READ_CHAR_PENDING_PTR(fptr);
 		int i;
-		if (needconv) {
+		if (!needconv) {
 		    if (*p != term) return TRUE;
+		    i = (int)cnt;
 		    while (--i && *++p == term);
 		}
 		else {
@@ -2419,7 +2407,7 @@ prepare_getline_args(int argc, VALUE *argv, VALUE *rsp, long *limit, VALUE io)
 	enc_io = io_read_encoding(fptr);
 	if (enc_io != enc_rs &&
 	    (rb_enc_str_coderange(rs) != ENC_CODERANGE_7BIT ||
-	     !rb_enc_asciicompat(enc_io))) {
+	     (RSTRING_LEN(rs) > 0 && !rb_enc_asciicompat(enc_io)))) {
             if (rs == rb_default_rs) {
                 rs = rb_enc_str_new(0, 0, enc_io);
                 rb_str_buf_cat_ascii(rs, "\n");
@@ -2463,6 +2451,8 @@ rb_io_getline_1(VALUE rs, long limit, VALUE io)
 	int rspara = 0;
         int extra_limit = 16;
 
+        enc = io_read_encoding(fptr);
+
 	if (!NIL_P(rs)) {
 	    rslen = RSTRING_LEN(rs);
 	    if (rslen == 0) {
@@ -2471,6 +2461,13 @@ rb_io_getline_1(VALUE rs, long limit, VALUE io)
 		rspara = 1;
 		swallow(fptr, '\n');
 		rs = 0;
+		if (!rb_enc_asciicompat(enc)) {
+		    rs = rb_usascii_str_new(rsptr, rslen);
+		    rs = rb_str_encode(rs, rb_enc_from_encoding(enc), 0, Qnil);
+		    OBJ_FREEZE(rs);
+		    rsptr = RSTRING_PTR(rs);
+		    rslen = RSTRING_LEN(rs);
+		}
 	    }
 	    else {
 		rsptr = RSTRING_PTR(rs);
@@ -2479,7 +2476,6 @@ rb_io_getline_1(VALUE rs, long limit, VALUE io)
 	}
 
 	/* MS - Optimisation */
-        enc = io_read_encoding(fptr);
 	while ((c = appendline(fptr, newline, &str, &limit)) != EOF) {
             const char *s, *p, *pp, *e;
 
@@ -3154,7 +3150,6 @@ rb_io_ungetbyte(VALUE io, VALUE b)
 
     GetOpenFile(io, fptr);
     rb_io_check_byte_readable(fptr);
-    io_unset_eof(fptr);
     if (NIL_P(b)) return Qnil;
     if (FIXNUM_P(b)) {
 	char cc = FIX2INT(b);
@@ -3191,7 +3186,6 @@ rb_io_ungetc(VALUE io, VALUE c)
 
     GetOpenFile(io, fptr);
     rb_io_check_char_readable(fptr);
-    io_unset_eof(fptr);
     if (NIL_P(c)) return Qnil;
     if (FIXNUM_P(c)) {
 	int cc = FIX2INT(c);
@@ -6660,7 +6654,7 @@ argf_initialize_copy(VALUE argf, VALUE orig)
  *  call-seq:
  *     ARGF.lineno = number  -> nil
  *
- *  Sets the line number of the current file in +ARGF+ to the given +Integer+.
+ *  Sets the line number of +ARGF+ as a whole to the given +Integer+.
  *
  *  +ARGF+ sets the line number automatically as you read data, so normally
  *  you will not need to set it explicitly. To access the current line number
@@ -6686,7 +6680,7 @@ argf_set_lineno(VALUE argf, VALUE val)
  *  call-seq:
  *     ARGF.lineno -> integer
  *
- *  Returns the current line number of the current file in +ARGF+. This value
+ *  Returns the current line number of ARGF as a whole. This value
  *  can be set manually with +ARGF.lineno=+.
  *
  *  For example:
@@ -6818,11 +6812,21 @@ argf_next_argv(VALUE argf)
 		    chmod(fn, st.st_mode);
 #endif
 		    if (st.st_uid!=st2.st_uid || st.st_gid!=st2.st_gid) {
+			int err;
 #ifdef HAVE_FCHOWN
-			(void)fchown(fw, st.st_uid, st.st_gid);
+			err = fchown(fw, st.st_uid, st.st_gid);
 #else
-			(void)chown(fn, st.st_uid, st.st_gid);
+			err = chown(fn, st.st_uid, st.st_gid);
 #endif
+			if (err && getuid() == 0 && st2.st_uid == 0) {
+			    const char *wkfn = RSTRING_PTR(ARGF.filename);
+			    rb_warn("Can't set owner/group of %s to same as %s: %s, skipping file",
+				    wkfn, fn, strerror(errno));
+			    (void)close(fr);
+			    (void)close(fw);
+			    (void)unlink(wkfn);
+			    goto retry;
+			}
 		    }
 #endif
 		    rb_stdout = prep_io(fw, FMODE_WRITABLE, rb_cFile, fn);
@@ -8068,9 +8072,14 @@ nogvl_copy_stream_wait_write(struct copy_stream_struct *stp)
 #endif
 
 static ssize_t
-simple_sendfile(int out_fd, int in_fd, off_t *offset, size_t count)
+simple_sendfile(int out_fd, int in_fd, off_t *offset, off_t count)
 {
-    return sendfile(out_fd, in_fd, offset, count);
+#if SIZEOF_OFF_T > SIZEOF_SIZE_T
+    /* we are limited by the 32-bit ssize_t return value on 32-bit */
+    if (count > (off_t)SSIZE_MAX)
+        count = SSIZE_MAX;
+#endif
+    return sendfile(out_fd, in_fd, offset, (size_t)count);
 }
 
 #endif
@@ -8138,8 +8147,7 @@ nogvl_copy_stream_sendfile(struct copy_stream_struct *stp)
         stp->total += ss;
         copy_length -= ss;
         if (0 < copy_length) {
-            ss = -1;
-            errno = EAGAIN;
+            goto retry_sendfile;
         }
     }
     if (ss == -1) {
@@ -9558,6 +9566,9 @@ opt_i_get(ID id, VALUE *var)
 static VALUE
 argf_inplace_mode_set(VALUE argf, VALUE val)
 {
+    if (rb_safe_level() >= 1 && OBJ_TAINTED(val))
+	rb_insecure_operation();
+
     if (!RTEST(val)) {
 	if (ARGF.inplace) free(ARGF.inplace);
 	ARGF.inplace = 0;

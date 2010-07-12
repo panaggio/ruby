@@ -153,6 +153,14 @@ require "stringio"
 #   CSV             { |csv_out| csv_out << %w{my data here} }  # to $stdout
 #   CSV(csv = "")   { |csv_str| csv_str << %w{my data here} }  # to a String
 #   CSV($stderr)    { |csv_err| csv_err << %w{my data here} }  # to $stderr
+#   CSV($stdin)     { |csv_in|  csv_in.each { |row| p row } }  # from $stdin
+# 
+# == Advanced Usage
+# 
+# === Wrap an IO Object
+# 
+#   csv = CSV.new(io, options)
+#   # ... read (with gets() or each()) from and write (with <<) to csv here ...
 #
 # == CSV and Character Encodings (M17n or Multilingualization)
 #
@@ -198,7 +206,7 @@ require "stringio"
 #
 class CSV
   # The version of the installed library.
-  VERSION = "2.4.6".freeze
+  VERSION = "2.4.7".freeze
 
   #
   # A CSV::Row is part Array and part Hash.  It retains an order for the fields
@@ -1805,9 +1813,6 @@ class CSV
       end
     end
 
-    # begin with a blank line, so we can always add to it
-    line = ""
-
     #
     # it can take multiple calls to <tt>@io.gets()</tt> to get a full line,
     # because of \r and/or \n characters embedded in quoted fields
@@ -1843,7 +1848,13 @@ class CSV
       end
 
       parts =  parse.split(@col_sep, -1)
-      csv   << nil if parts.empty?
+      if parts.empty?
+        if in_extended_col
+          csv[-1] << @col_sep   # will be replaced with a @row_sep after the parts.each loop
+        else
+          csv << nil
+        end
+      end
 
       # This loop is the hot path of csv parsing. Some things may be non-dry
       # for a reason. Make sure to benchmark when refactoring.
@@ -2066,7 +2077,6 @@ class CSV
     @field_size_limit = options.delete(:field_size_limit)
 
     # prebuild Regexps for faster parsing
-    esc_col_sep = escape_re(@col_sep)
     esc_row_sep = escape_re(@row_sep)
     esc_quote   = escape_re(@quote_char)
     @parsers = {

@@ -435,7 +435,8 @@ static VALUE canonical(VALUE self)
 
 /* call-seq: emitter.indentation = level
  *
- * Set the indentation level to +level+.
+ * Set the indentation level to +level+.  The level must be less than 10 and
+ * greater than 1.
  */
 static VALUE set_indentation(VALUE self, VALUE level)
 {
@@ -457,6 +458,32 @@ static VALUE indentation(VALUE self)
     Data_Get_Struct(self, yaml_emitter_t, emitter);
 
     return INT2NUM(emitter->best_indent);
+}
+
+/* call-seq: emitter.line_width
+ *
+ * Get the preferred line width.
+ */
+static VALUE line_width(VALUE self)
+{
+    yaml_emitter_t * emitter;
+    Data_Get_Struct(self, yaml_emitter_t, emitter);
+
+    return INT2NUM(emitter->best_width);
+}
+
+/* call-seq: emitter.line_width = width
+ *
+ * Set the preferred line with to +width+.
+ */
+static VALUE set_line_width(VALUE self, VALUE width)
+{
+    yaml_emitter_t * emitter;
+    Data_Get_Struct(self, yaml_emitter_t, emitter);
+
+    yaml_emitter_set_width(emitter, NUM2INT(width));
+
+    return width;
 }
 
 void Init_psych_emitter()
@@ -482,6 +509,8 @@ void Init_psych_emitter()
     rb_define_method(cPsychEmitter, "canonical=", set_canonical, 1);
     rb_define_method(cPsychEmitter, "indentation", indentation, 0);
     rb_define_method(cPsychEmitter, "indentation=", set_indentation, 1);
+    rb_define_method(cPsychEmitter, "line_width", line_width, 0);
+    rb_define_method(cPsychEmitter, "line_width=", set_line_width, 1);
 
     id_write = rb_intern("write");
 }

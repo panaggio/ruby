@@ -182,7 +182,7 @@ class TestRubyOptions < Test::Unit::TestCase
   end
 
   def test_syntax_check
-    assert_in_out_err(%w(-c -e a=1+1), "", ["Syntax OK"], [])
+    assert_in_out_err(%w(-c -e a=1+1 -e !a), "", ["Syntax OK"], [])
   end
 
   def test_invalid_option
@@ -420,5 +420,36 @@ class TestRubyOptions < Test::Unit::TestCase
     feature3446 = '[ruby-dev:41620]'
     assert_in_out_err(["-we", "a=1"], "", [], ["-e:1: warning: assigned but unused variable - a"], feature3446)
     assert_in_out_err(["-we", "1.times do\n  a=1\nend"], "", [], ["-e:2: warning: assigned but unused variable - a"], feature3446)
+  end
+
+  def test_script_from_stdin
+    begin
+      require 'pty'
+      require 'io/console'
+    rescue LoadError
+      return
+    end
+    require 'timeout'
+    result = nil
+    s, w = IO.pipe
+    PTY.spawn(EnvUtil.rubybin, out: w) do |r, m|
+      w.close
+      m.print("\C-d")
+      assert_nothing_raised('[ruby-dev:37798]') do
+        result = Timeout.timeout(3) {s.read}
+      end
+    end
+    s.close
+    assert_equal("", result, '[ruby-dev:37798]')
+    s, w = IO.pipe
+    PTY.spawn(EnvUtil.rubybin, out: w) do |r, m|
+      w.close
+      m.print("$stdin.read; p $stdin.gets\n\C-d")
+      m.print("abc\n\C-d")
+      m.print("zzz\n")
+      result = s.read
+    end
+    s.close
+    assert_equal("\"zzz\\n\"\n", result, '[ruby-core:30910]')
   end
 end

@@ -2699,6 +2699,18 @@ rb_path_skip_prefix(const char *path)
     return (char *)path;
 }
 
+static inline char *
+skipprefixroot(const char *path)
+{
+#if defined(DOSISH_UNC) || defined(DOSISH_DRIVE_LETTER)
+    char *p = skipprefix(path);
+    while (isdirsep(*p)) p++;
+    return p;
+#else
+    return skiproot(path);
+#endif
+}
+
 #define strrdirsep rb_path_last_separator
 char *
 rb_path_last_separator(const char *path)
@@ -3247,7 +3259,7 @@ realpath_rec(long *prefixlenp, VALUE *resolvedp, char *unresolved, VALUE loopche
                     rb_hash_aset(loopcheck, testpath, ID2SYM(resolving));
                     link = rb_file_s_readlink(rb_cFile, testpath);
                     link_prefix = RSTRING_PTR(link);
-                    link_names = skiproot(link_prefix);
+                    link_names = skipprefixroot(link_prefix);
                     link_prefixlen = link_names - link_prefix;
                     if (link_prefixlen == 0) {
                         realpath_rec(prefixlenp, resolvedp, link_names, loopcheck, strict, *unresolved_firstsep == '\0');
@@ -3294,7 +3306,7 @@ rb_realpath_internal(VALUE basedir, VALUE path, int strict)
     }
 
     ptr = RSTRING_PTR(unresolved_path);
-    path_names = skiproot(ptr);
+    path_names = skipprefixroot(ptr);
     if (ptr != path_names) {
         resolved = rb_enc_str_new(ptr, path_names - ptr,
 				  rb_enc_get(unresolved_path));
@@ -3303,7 +3315,7 @@ rb_realpath_internal(VALUE basedir, VALUE path, int strict)
 
     if (!NIL_P(basedir)) {
         ptr = RSTRING_PTR(basedir);
-        basedir_names = skiproot(ptr);
+	basedir_names = skipprefixroot(ptr);
         if (ptr != basedir_names) {
             resolved = rb_enc_str_new(ptr, basedir_names - ptr,
 				      rb_enc_get(basedir));
@@ -3313,7 +3325,7 @@ rb_realpath_internal(VALUE basedir, VALUE path, int strict)
 
     curdir = rb_dir_getwd();
     ptr = RSTRING_PTR(curdir);
-    curdir_names = skiproot(ptr);
+    curdir_names = skipprefixroot(ptr);
     resolved = rb_enc_str_new(ptr, curdir_names - ptr, rb_enc_get(curdir));
 
   root_found:
@@ -3417,42 +3429,15 @@ rmext(const char *p, long l1, const char *e)
     return 0;
 }
 
-/*
- *  call-seq:
- *     File.basename(file_name [, suffix] )  ->  base_name
- *
- *  Returns the last component of the filename given in <i>file_name</i>,
- *  which must be formed using forward slashes (``<code>/</code>'')
- *  regardless of the separator used on the local file system. If
- *  <i>suffix</i> is given and present at the end of <i>file_name</i>,
- *  it is removed.
- *
- *     File.basename("/home/gumby/work/ruby.rb")          #=> "ruby.rb"
- *     File.basename("/home/gumby/work/ruby.rb", ".rb")   #=> "ruby"
- */
-
-static VALUE
-rb_file_s_basename(int argc, VALUE *argv)
+const char *
+ruby_find_basename(const char *name, long *baselen, long *alllen)
 {
-    VALUE fname, fext, basename;
-    const char *name, *p;
+    const char *p, *q, *e;
 #if defined DOSISH_DRIVE_LETTER || defined DOSISH_UNC
     const char *root;
 #endif
-    long f, n;
+    long f = 0, n = -1;
 
-    if (rb_scan_args(argc, argv, "11", &fname, &fext) == 2) {
-	rb_encoding *enc;
-	StringValue(fext);
-	if (!rb_enc_asciicompat(enc = rb_enc_get(fext))) {
-	    rb_raise(rb_eEncCompatError, "ascii incompatible character encodings: %s",
-		     rb_enc_name(enc));
-	}
-    }
-    FilePathStringValue(fname);
-    if (!NIL_P(fext)) rb_enc_check(fname, fext);
-    if (RSTRING_LEN(fname) == 0 || !*(name = RSTRING_PTR(fname)))
-	return rb_str_new_shared(fname);
     name = skipprefix(name);
 #if defined DOSISH_DRIVE_LETTER || defined DOSISH_UNC
     root = name;
@@ -3491,11 +3476,63 @@ rb_file_s_basename(int argc, VALUE *argv)
 #else
 	n = chompdirsep(p) - p;
 #endif
+	for (q = p; q - p < n && *q == '.'; q++);
+	for (e = 0; q - p < n; q = CharNext(q)) {
+	    if (*q == '.') e = q;
+	}
+	if (e) f = e - p;
+	else f = n;
+    }
+
+    if (baselen)
+	*baselen = f;
+    if (alllen)
+	*alllen = n;
+    return p;
+}
+
+/*
+ *  call-seq:
+ *     File.basename(file_name [, suffix] )  ->  base_name
+ *
+ *  Returns the last component of the filename given in <i>file_name</i>,
+ *  which must be formed using forward slashes (``<code>/</code>'')
+ *  regardless of the separator used on the local file system. If
+ *  <i>suffix</i> is given and present at the end of <i>file_name</i>,
+ *  it is removed.
+ *
+ *     File.basename("/home/gumby/work/ruby.rb")          #=> "ruby.rb"
+ *     File.basename("/home/gumby/work/ruby.rb", ".rb")   #=> "ruby"
+ */
+
+static VALUE
+rb_file_s_basename(int argc, VALUE *argv)
+{
+    VALUE fname, fext, basename;
+    const char *name, *p;
+    long f, n;
+
+    if (rb_scan_args(argc, argv, "11", &fname, &fext) == 2) {
+	rb_encoding *enc;
+	StringValue(fext);
+	if (!rb_enc_asciicompat(enc = rb_enc_get(fext))) {
+	    rb_raise(rb_eEncCompatError, "ascii incompatible character encodings: %s",
+		     rb_enc_name(enc));
+	}
+    }
+    FilePathStringValue(fname);
+    if (!NIL_P(fext)) rb_enc_check(fname, fext);
+    if (RSTRING_LEN(fname) == 0 || !*(name = RSTRING_PTR(fname)))
+	return rb_str_new_shared(fname);
+
+    p = ruby_find_basename(name, &f, &n);
+    if (n >= 0) {
 	if (NIL_P(fext) || !(f = rmext(p, n, StringValueCStr(fext)))) {
 	    f = n;
 	}
 	if (f == RSTRING_LEN(fname)) return rb_str_new_shared(fname);
     }
+
     basename = rb_str_new(p, f);
     rb_enc_copy(basename, fname);
     OBJ_INFECT(basename, fname);
@@ -3561,27 +3598,22 @@ rb_file_dirname(VALUE fname)
 }
 
 /*
- *  call-seq:
- *     File.extname(path)  ->  string
- *
- *  Returns the extension (the portion of file name in <i>path</i>
- *  after the period).
- *
- *     File.extname("test.rb")         #=> ".rb"
- *     File.extname("a/b/d/test.rb")   #=> ".rb"
- *     File.extname("test")            #=> ""
- *     File.extname(".profile")        #=> ""
+ * accept a String, and return the pointer of the extension.
+ * if len is passed, set the length of extension to it.
+ * returned pointer is in ``name'' or NULL.
+ *                 returns   *len
+ *   no dot        NULL      0
+ *   dotfile       top       0
+ *   end with dot  dot       1
+ *   .ext          dot       len of .ext
+ *   .ext:stream   dot       len of .ext without :stream (NT only)
  *
  */
-
-static VALUE
-rb_file_s_extname(VALUE klass, VALUE fname)
+const char *
+ruby_find_extname(const char *name, long *len)
 {
-    const char *name, *p, *e;
-    VALUE extname;
+    const char *p, *e;
 
-    FilePathStringValue(fname);
-    name = StringValueCStr(fname);
     p = strrdirsep(name);	/* get the last path component */
     if (!p)
 	p = name;
@@ -3617,9 +3649,46 @@ rb_file_s_extname(VALUE klass, VALUE fname)
 	    break;
 	p = CharNext(p);
     }
-    if (!e || e == name || e+1 == p)	/* no dot, or the only dot is first or end? */
+
+    if (len) {
+	/* no dot, or the only dot is first or end? */
+	if (!e || e == name)
+	    *len = 0;
+	else if (e+1 == p)
+	    *len = 1;
+	else
+	    *len = p - e;
+    }
+    return e;
+}
+
+/*
+ *  call-seq:
+ *     File.extname(path)  ->  string
+ *
+ *  Returns the extension (the portion of file name in <i>path</i>
+ *  after the period).
+ *
+ *     File.extname("test.rb")         #=> ".rb"
+ *     File.extname("a/b/d/test.rb")   #=> ".rb"
+ *     File.extname("test")            #=> ""
+ *     File.extname(".profile")        #=> ""
+ *
+ */
+
+static VALUE
+rb_file_s_extname(VALUE klass, VALUE fname)
+{
+    const char *name, *e;
+    long len;
+    VALUE extname;
+
+    FilePathStringValue(fname);
+    name = StringValueCStr(fname);
+    e = ruby_find_extname(name, &len);
+    if (len <= 1)
 	return rb_str_new(0, 0);
-    extname = rb_str_new(e, p - e);	/* keep the dot, too! */
+    extname = rb_str_new(e, len);	/* keep the dot, too! */
     rb_enc_copy(extname, fname);
     OBJ_INFECT(extname, fname);
     return extname;

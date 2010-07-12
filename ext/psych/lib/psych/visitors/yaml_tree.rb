@@ -13,6 +13,7 @@ module Psych
         @emitter  = emitter
         @st       = {}
         @ss       = ScalarScanner.new
+        @options  = options
 
         @dispatch_cache = Hash.new do |h,klass|
           method = "visit_#{(klass.name || '').split('::').join('_')}"
@@ -43,7 +44,19 @@ module Psych
 
       def push object
         start unless started?
-        @emitter.start_document [], [], false
+        version = []
+        version = [1,1] if @options[:header]
+
+        case @options[:version]
+        when Array
+          version = @options[:version]
+        when String
+          version = @options[:version].split('.').map { |x| x.to_i }
+        else
+          version = [1,1]
+        end if @options.key? :version
+
+        @emitter.start_document version, [], false
         accept object
         @emitter.end_document
       end
@@ -135,14 +148,14 @@ module Psych
         @emitter.scalar o.inspect, nil, '!ruby/regexp', false, false, Nodes::Scalar::ANY
       end
 
-      def visit_Time o
-        formatted = o.strftime("%Y-%m-%d %H:%M:%S")
-        if o.utc?
-          formatted += ".%06dZ" % [o.usec]
-        else
-          formatted += ".%06d %+.2d:00" % [o.usec, o.gmt_offset / 3600]
-        end
+      def visit_DateTime o
+        formatted = format_time o.to_time
+        tag = '!ruby/object:DateTime'
+        @emitter.scalar formatted, nil, tag, false, false, Nodes::Scalar::ANY
+      end
 
+      def visit_Time o
+        formatted = format_time o
         @emitter.scalar formatted, nil, nil, true, false, Nodes::Scalar::ANY
       end
 
@@ -268,6 +281,14 @@ module Psych
       end
 
       private
+      def format_time time
+        if time.utc?
+          time.strftime("%Y-%m-%d %H:%M:%S.%9NZ")
+        else
+          time.strftime("%Y-%m-%d %H:%M:%S.%9N %:z")
+        end
+      end
+
       # FIXME: remove this method once "to_yaml_properties" is removed
       def find_ivars target
         loc = target.method(:to_yaml_properties).source_location.first

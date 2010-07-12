@@ -420,7 +420,13 @@ static inline int rb_type(VALUE obj);
 #define RB_GC_GUARD_PTR(ptr) \
     __extension__ ({volatile VALUE *rb_gc_guarded_ptr = (ptr); rb_gc_guarded_ptr;})
 #else
+#ifdef _MSC_VER
+#pragma optimize("", off)
+#endif
 static inline volatile VALUE *rb_gc_guarded_ptr(volatile VALUE *ptr) {return ptr;}
+#ifdef _MSC_VER
+#pragma optimize("", on)
+#endif
 #define RB_GC_GUARD_PTR(ptr) rb_gc_guarded_ptr(ptr)
 #endif
 #define RB_GC_GUARD(v) (*RB_GC_GUARD_PTR(&(v)))
@@ -1205,6 +1211,7 @@ RUBY_EXTERN VALUE rb_cNameErrorMesg;
 RUBY_EXTERN VALUE rb_cNilClass;
 RUBY_EXTERN VALUE rb_cNumeric;
 RUBY_EXTERN VALUE rb_cProc;
+RUBY_EXTERN VALUE rb_cRandom;
 RUBY_EXTERN VALUE rb_cRange;
 RUBY_EXTERN VALUE rb_cRational;
 RUBY_EXTERN VALUE rb_cComplex;
@@ -1414,6 +1421,17 @@ int ruby_vsnprintf(char *str, size_t n, char const *fmt, va_list ap);
 #undef vsnprintf
 #define snprintf ruby_snprintf
 #define vsnprintf ruby_vsnprintf
+
+#ifdef __FreeBSD__
+#undef getpeername
+#define getpeername ruby_getpeername
+#undef getsockname
+#define getsockname ruby_getsockname
+#undef shutdown
+#define shutdown ruby_shutdown
+#undef close
+#define close ruby_close
+#endif
 
 #if defined(__cplusplus)
 #if 0
