@@ -4212,6 +4212,18 @@ rb_queue_alloc(VALUE klass)
     return Data_Wrap_Struct(klass, mark_queue, free_queue, queue);
 }
 
+static void
+wait_push(Queue *queue)
+{
+    VALUE thread;
+
+    if (RARRAY_LEN(queue->waiting)) {
+        thread = rb_ary_shift(queue->waiting);
+        if (thread != Qnil)
+           rb_rescue(rb_thread_wakeup, thread, wait_push, queue);
+    }
+}
+
 /*
  * Document-method: push
  * call-seq: push(obj)
@@ -4223,7 +4235,6 @@ rb_queue_alloc(VALUE klass)
 static VALUE
 rb_queue_push(VALUE self, VALUE obj)
 {
-    VALUE thread;
     Queue *queue;
     Data_Get_Struct(self, Queue, queue);
 
@@ -4231,11 +4242,7 @@ rb_queue_push(VALUE self, VALUE obj)
 
     rb_ary_push(queue->que, obj);
 
-    while(RARRAY_LEN(queue->waiting)) {
-        thread = rb_ary_shift(queue->waiting);
-        if (thread != Qnil)
-           rb_thread_wakeup(thread);
-    }
+    wait_push(queue);
 
     rb_mutex_unlock(queue->mutex);
 
