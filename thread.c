@@ -61,7 +61,6 @@ VALUE rb_cMutex;
 VALUE rb_cBarrier;
 VALUE rb_cQueue;
 
-
 static void sleep_timeval(rb_thread_t *th, struct timeval time);
 static void sleep_wait_for_interrupt(rb_thread_t *th, double sleepsec);
 static void sleep_forever(rb_thread_t *th, int nodeadlock);
@@ -2287,7 +2286,7 @@ rb_fd_resize(int n, rb_fdset_t *fds)
     if (o < sizeof(fd_set)) o = sizeof(fd_set);
 
     if (m > o) {
-	fds->fdset = xrealloc(fds->fdset, m);
+	fds->fdset = realloc(fds->fdset, m);
 	memset((char *)fds->fdset + o, 0, m - o);
     }
     if (n >= fds->maxfd) fds->maxfd = n + 1;
@@ -2321,7 +2320,7 @@ rb_fd_copy(rb_fdset_t *dst, const fd_set *src, int max)
 
     if (size < sizeof(fd_set)) size = sizeof(fd_set);
     dst->maxfd = max;
-    dst->fdset = xrealloc(dst->fdset, size);
+    dst->fdset = realloc(dst->fdset, size);
     memcpy(dst->fdset, src, size);
 }
 
@@ -4482,6 +4481,7 @@ Init_Thread(void)
 
     rb_cMutex = rb_define_class("Mutex", rb_cObject);
     rb_define_alloc_func(rb_cMutex, mutex_alloc);
+    rb_define_method(rb_cMutex, "initialize", mutex_initialize, 0);
     rb_define_method(rb_cMutex, "locked?", rb_mutex_locked_p, 0);
     rb_define_method(rb_cMutex, "try_lock", rb_mutex_trylock, 0);
     rb_define_method(rb_cMutex, "lock", rb_mutex_lock, 0);
@@ -4641,4 +4641,3 @@ rb_reset_coverages(void)
     GET_VM()->coverages = Qfalse;
     rb_remove_event_hook(update_coverage);
 }
-
