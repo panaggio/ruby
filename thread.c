@@ -4177,14 +4177,6 @@ mark_queue(Queue *queue)
 }
 
 static void
-finalize_queue(Queue *queue)
-{
-    mutex_free(&queue->mutex);
-    rb_ary_free(queue->que);
-    rb_ary_free(queue->waiting);
-}
-
-static void
 free_queue(Queue *queue)
 {
     int i=0;
@@ -4192,14 +4184,13 @@ free_queue(Queue *queue)
     for (i=0; i<size; i++) {
         rb_thread_kill(rb_ary_entry(queue->waiting, i));
     }
-    finalize_queue(queue);
     xfree(queue);
 }
 
 static void
 init_queue(Queue *queue)
 {
-    mutex_alloc(queue->mutex);
+    queue->mutex = rb_mutex_new();
     queue->que = rb_ary_new();
     queue->waiting = rb_ary_new();
 }
@@ -4240,7 +4231,7 @@ rb_queue_push(VALUE self, VALUE obj)
 
     rb_ary_push(queue->que, obj);
 
-    while(RARRAY_LEN(queue->que)) {
+    while(RARRAY_LEN(queue->waiting)) {
         thread = rb_ary_shift(queue->waiting);
         if (thread != Qnil)
            rb_thread_wakeup(thread);
@@ -4283,15 +4274,16 @@ rb_queue_pop(int argc, VALUE *argv, VALUE self)
 
     rb_mutex_lock(queue->mutex);
 
-    if (!RARRAY_LEN(queue->que) && !should_block) {
-        rb_mutex_unlock(queue->mutex);
-        rb_raise(rb_eThreadError, "queue empty");
-    }
-
     while(!RARRAY_LEN(queue->que)) {
+        if (!should_block) {
+            rb_mutex_unlock(queue->mutex);
+            rb_raise(rb_eThreadError, "queue empty");
+        }
+
         current_thread = rb_thread_current();
         rb_ary_push(queue->waiting, current_thread);
-        rb_mutex_sleep_forever(Qnil);
+
+        rb_mutex_sleep(queue->mutex, Qnil);
     }
 
     poped = rb_ary_shift(queue->que);
