@@ -4170,21 +4170,26 @@ typedef struct _Queue {
 } Queue;
 
 static void
-queue_mark(Queue *queue)
+queue_mark(void *ptr)
 {
     /* mutex_mark(queue->mutex); */
     /* TODO: Mark arrays, if needed */
 }
 
 static void
-queue_free(Queue *queue)
+queue_free(void *ptr)
 {
     int i=0;
-    int size = RARRAY_LEN(queue->waiting);
-    for (i=0; i<size; i++) {
-        rb_thread_kill(rb_ary_entry(queue->waiting, i));
+    int size;
+
+    if (ptr) {
+        Queue *queue = ptr;
+        size = RARRAY_LEN(queue->waiting);
+        for (i=0; i<size; i++) {
+            rb_thread_kill(rb_ary_entry(queue->waiting, i));
+        }
     }
-    xfree(queue);
+    ruby_xfree(ptr);
 }
 
 static void
@@ -4220,12 +4225,13 @@ static const rb_data_type_t queue_data_type = {
 static VALUE
 rb_queue_alloc(VALUE klass)
 {
-    VALUE volatile obj;
+    VALUE volatile self;
     Queue *queue;
-    obj = TypedData_Make_Struct(klass, Queue, &queue_data_type, queue);
+    self = TypedData_Make_Struct(klass, Queue, &queue_data_type, queue);
+    GetQueuePtr(self, queue);
     queue_init(queue);
 
-    return obj;
+    return self;
 }
 
 static void wait_push(Queue *queue);
@@ -4254,6 +4260,8 @@ rb_queue_push(VALUE self, VALUE obj)
 
     return self;
 }
+
+static void wait_push(Queue *queue);
 
 static void
 wait_push(Queue *queue)
