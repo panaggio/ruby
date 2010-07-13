@@ -4170,14 +4170,14 @@ typedef struct _Queue {
 } Queue;
 
 static void
-mark_queue(Queue *queue)
+queue_mark(Queue *queue)
 {
     /* mutex_mark(queue->mutex); */
     /* TODO: Mark arrays, if needed */
 }
 
 static void
-free_queue(Queue *queue)
+queue_free(Queue *queue)
 {
     int i=0;
     int size = RARRAY_LEN(queue->waiting);
@@ -4188,12 +4188,26 @@ free_queue(Queue *queue)
 }
 
 static void
-init_queue(Queue *queue)
+queue_init(Queue *queue)
 {
     queue->mutex = rb_mutex_new();
     queue->que = rb_ary_new();
     queue->waiting = rb_ary_new();
 }
+
+static size_t
+queue_memsize(const void *ptr)
+{
+    return ptr ? sizeof(Queue) : 0;
+}
+
+static const rb_data_type_t queue_data_type = {
+    "queue",
+    queue_mark, queue_free, queue_memsize,
+};
+
+#define GetQueuePtr(obj, tobj) \
+    TypedData_Get_Struct(obj, Queue, &queue_data_type, tobj)
 
 /*
  * Document-method: new
@@ -4206,23 +4220,15 @@ init_queue(Queue *queue)
 static VALUE
 rb_queue_alloc(VALUE klass)
 {
+    VALUE volatile obj;
     Queue *queue;
-    queue = ALLOC(Queue);
-    init_queue(queue);
-    return Data_Wrap_Struct(klass, mark_queue, free_queue, queue);
+    obj = TypedData_Make_Struct(klass, Queue, &queue_data_type, queue);
+    queue_init(queue);
+
+    return obj;
 }
 
-static void
-wait_push(Queue *queue)
-{
-    VALUE thread;
-
-    if (RARRAY_LEN(queue->waiting)) {
-        thread = rb_ary_shift(queue->waiting);
-        if (thread != Qnil)
-           rb_rescue(rb_thread_wakeup, thread, wait_push, queue);
-    }
-}
+static void wait_push(Queue *queue);
 
 /*
  * Document-method: push
@@ -4236,7 +4242,7 @@ static VALUE
 rb_queue_push(VALUE self, VALUE obj)
 {
     Queue *queue;
-    Data_Get_Struct(self, Queue, queue);
+    GetQueuePtr(self, queue);
 
     rb_mutex_lock(queue->mutex);
 
@@ -4247,6 +4253,18 @@ rb_queue_push(VALUE self, VALUE obj)
     rb_mutex_unlock(queue->mutex);
 
     return self;
+}
+
+static void
+wait_push(Queue *queue)
+{
+    VALUE thread;
+
+    if (RARRAY_LEN(queue->waiting)) {
+        thread = rb_ary_shift(queue->waiting);
+        if (thread != Qnil)
+           rb_rescue(rb_thread_wakeup, thread, wait_push, queue);
+    }
 }
 
 /*
@@ -4265,7 +4283,7 @@ rb_queue_pop(int argc, VALUE *argv, VALUE self)
     int should_block;
     VALUE poped, current_thread;
     Queue *queue;
-    Data_Get_Struct(self, Queue, queue);
+    GetQueuePtr(self, queue);
 
     switch (argc) {
         case 0:
@@ -4313,7 +4331,7 @@ rb_queue_empty_p(VALUE self)
 {
     VALUE result;
     Queue *queue;
-    Data_Get_Struct(self, Queue, queue);
+    GetQueuePtr(self, queue);
 
     rb_mutex_lock(queue->mutex);
     result = RARRAY_LEN(queue->que) == 0 ? Qtrue : Qfalse;
@@ -4334,7 +4352,7 @@ static VALUE
 rb_queue_clear(VALUE self)
 {
     Queue *queue;
-    Data_Get_Struct(self, Queue, queue);
+    GetQueuePtr(self, queue);
 
     rb_mutex_lock(queue->mutex);
     rb_ary_clear(queue->que);
@@ -4357,7 +4375,7 @@ rb_queue_length(VALUE self)
     long len;
     VALUE result;
     Queue *queue;
-    Data_Get_Struct(self, Queue, queue);
+    GetQueuePtr(self, queue);
 
     rb_mutex_lock(queue->mutex);
     len = RARRAY_LEN(queue->que);
@@ -4381,7 +4399,7 @@ rb_queue_num_waiting(VALUE self)
     long len;
     VALUE result;
     Queue *queue;
-    Data_Get_Struct(self, Queue, queue);
+    GetQueuePtr(self, queue);
 
     rb_mutex_lock(queue->mutex);
     len = RARRAY_LEN(queue->waiting);
