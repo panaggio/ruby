@@ -4172,8 +4172,10 @@ typedef struct _Queue {
 static void
 queue_mark(void *ptr)
 {
+    Queue *queue = ptr;
     /* mutex_mark(queue->mutex); */
-    /* TODO: Mark arrays, if needed */
+    rb_gc_mark(queue->que);
+    rb_gc_mark(queue->waiting);
 }
 
 static void
@@ -4234,7 +4236,7 @@ rb_queue_alloc(VALUE klass)
     return self;
 }
 
-static void wait_push(Queue *queue);
+static VALUE wait_push(void *ptr);
 
 /*
  * Document-method: push
@@ -4261,18 +4263,16 @@ rb_queue_push(VALUE self, VALUE obj)
     return self;
 }
 
-static void wait_push(Queue *queue);
-
-static void
-wait_push(Queue *queue)
+static VALUE
+wait_push(void *ptr)
 {
     VALUE thread;
+    Queue *queue = ptr;
 
-    if (RARRAY_LEN(queue->waiting)) {
-        thread = rb_ary_shift(queue->waiting);
-        if (thread != Qnil)
-           rb_rescue(rb_thread_wakeup, thread, wait_push, queue);
-    }
+    thread = rb_ary_shift(queue->waiting);
+    if (thread != Qnil)
+       rb_rescue(rb_thread_wakeup, thread, wait_push, queue);
+    return Qnil;
 }
 
 /*
