@@ -4174,6 +4174,7 @@ queue_mark(void *ptr)
 {
     Queue *queue = ptr;
     /* mutex_mark(queue->mutex); */
+    rb_gc_mark(queue->mutex);
     rb_gc_mark(queue->que);
     rb_gc_mark(queue->waiting);
 }
