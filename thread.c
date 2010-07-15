@@ -4194,14 +4194,6 @@ queue_free(void *ptr)
     ruby_xfree(ptr);
 }
 
-static void
-queue_init(Queue *queue)
-{
-    queue->mutex = rb_mutex_new();
-    queue->que = rb_ary_new();
-    queue->waiting = rb_ary_new();
-}
-
 static size_t
 queue_memsize(const void *ptr)
 {
@@ -4225,15 +4217,18 @@ static const rb_data_type_t queue_data_type = {
  */
 
 static VALUE
-rb_queue_alloc(VALUE klass)
+queue_alloc(VALUE klass)
 {
-    VALUE volatile self;
+    VALUE volatile obj;
     Queue *queue;
-    self = TypedData_Make_Struct(klass, Queue, &queue_data_type, queue);
-    GetQueuePtr(self, queue);
-    queue_init(queue);
+    obj = TypedData_Make_Struct(klass, Queue, &queue_data_type, queue);
+    //GetQueuePtr(self, queue);
 
-    return self;
+    queue->mutex = rb_mutex_new();
+    queue->que = rb_ary_new();
+    queue->waiting = rb_ary_new();
+
+    return obj;
 }
 
 static VALUE wait_push(void *ptr);
@@ -4271,7 +4266,7 @@ wait_push(void *ptr)
 
     thread = rb_ary_shift(queue->waiting);
     if (thread != Qnil)
-       rb_rescue(rb_thread_wakeup, thread, wait_push, queue);
+       rb_rescue(rb_thread_wakeup, thread, wait_push, ptr);
     return Qnil;
 }
 
@@ -4514,7 +4509,7 @@ Init_Thread(void)
     rb_define_method(rb_cMutex, "sleep", mutex_sleep, -1);
 
     rb_cQueue = rb_define_class("Queue", rb_cObject);
-    rb_define_alloc_func(rb_cQueue, rb_queue_alloc);
+    rb_define_alloc_func(rb_cQueue, queue_alloc);
     rb_define_method(rb_cQueue, "push", rb_queue_push, 1);
     rb_define_method(rb_cQueue, "pop", rb_queue_pop, -1);
     rb_define_method(rb_cQueue, "empty?", rb_queue_empty_p, 0);
