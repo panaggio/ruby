@@ -1300,13 +1300,13 @@ match_at(regex_t* reg, const UChar* str, const UChar* end,
   s = (UChar* )sstart;
   while (1) {
 #ifdef ONIG_DEBUG_MATCH
-    {
+    if (s) {
       UChar *q, *bp, buf[50];
       int len;
       fprintf(stderr, "%4d> \"", (int )(s - str));
       bp = buf;
       for (i = 0, q = s; i < 7 && q < end; i++) {
-	len = enclen(encode, q);
+	len = enclen(encode, q, end);
 	while (len-- > 0) *bp++ = *q++;
       }
       if (q < end) { xmemcpy(bp, "...\"", 4); bp += 4; }
@@ -3636,11 +3636,6 @@ onig_search(regex_t* reg, const UChar* str, const UChar* end,
             MATCH_AND_RETURN_CHECK(orig_range);
             prev = s;
             s += enclen(reg->enc, s, end);
-
-            while (!ONIGENC_IS_MBC_NEWLINE(reg->enc, prev, end) && s < range) {
-              prev = s;
-              s += enclen(reg->enc, s, end);
-            }
           } while (s < range);
           goto mismatch;
         }

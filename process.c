@@ -2513,10 +2513,12 @@ rb_fork_err(int *status, int (*chfunc)(void*, char *, size_t), void *charg, VALU
 	    if (!(*chfunc)(charg, errmsg, errmsg_buflen)) _exit(EXIT_SUCCESS);
 #ifdef FD_CLOEXEC
 	    err = errno;
-	    (void)write(ep[1], &err, sizeof(err));
+	    if (write(ep[1], &err, sizeof(err)) < 0) err = errno;
             if (errmsg && 0 < errmsg_buflen) {
                 errmsg[errmsg_buflen-1] = '\0';
-                (void)write(ep[1], errmsg, strlen(errmsg));
+                errmsg_buflen = strlen(errmsg);
+		if (errmsg_buflen > 0 &&write(ep[1], errmsg, errmsg_buflen) < 0)
+                  err = errno;
             }
 #endif
 #if EXIT_SUCCESS == 127
@@ -4552,6 +4554,11 @@ proc_setmaxgroups(VALUE obj, VALUE val)
 }
 
 #if defined(HAVE_DAEMON) || (defined(HAVE_FORK) && defined(HAVE_SETSID))
+#ifndef HAVE_DAEMON
+static int rb_daemon(int nochdir, int noclose);
+#define daemon(nochdir, noclose) rb_daemon(nochdir, noclose)
+#endif
+
 /*
  *  call-seq:
  *     Process.daemon()                        -> 0
@@ -4575,14 +4582,20 @@ proc_daemon(int argc, VALUE *argv)
     rb_secure(2);
     rb_scan_args(argc, argv, "02", &nochdir, &noclose);
 
-#if defined(HAVE_DAEMON)
     prefork();
     before_fork();
     n = daemon(RTEST(nochdir), RTEST(noclose));
     after_fork();
     if (n < 0) rb_sys_fail("daemon");
     return INT2FIX(n);
-#elif defined(HAVE_FORK)
+}
+
+#ifndef HAVE_DAEMON
+static int
+rb_daemon(int nochdir, int noclose)
+{
+    int n, err = 0;
+
     switch (rb_fork(0, 0, 0, Qnil)) {
       case -1:
 	rb_sys_fail("daemon");
@@ -4597,26 +4610,26 @@ proc_daemon(int argc, VALUE *argv)
     /* must not be process-leader */
     switch (rb_fork(0, 0, 0, Qnil)) {
       case -1:
-	rb_sys_fail("daemon");
+	return -1;
       case 0:
 	break;
       default:
 	_exit(EXIT_SUCCESS);
     }
 
-    if (!RTEST(nochdir))
-	(void)chdir("/");
+    if (!nochdir)
+	err = chdir("/");
 
-    if (!RTEST(noclose) && (n = open("/dev/null", O_RDWR, 0)) != -1) {
+    if (!noclose && (n = open("/dev/null", O_RDWR, 0)) != -1) {
 	(void)dup2(n, 0);
 	(void)dup2(n, 1);
 	(void)dup2(n, 2);
 	if (n > 2)
 	    (void)close (n);
     }
-    return INT2FIX(0);
-#endif
+    return err;
 }
+#endif
 #else
 #define proc_daemon rb_f_notimplement
 #endif

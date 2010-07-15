@@ -1,3 +1,87 @@
+Thu Jul 15 21:43:35 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+
+	* numeric.c (fix_divide): must not use rb_rational_new1 for coercion
+	  because it returns an argument itself when canonical mode is set.
+	  [ruby-core:31279]
+
+Thu Jul 15 21:38:31 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+
+	* proc.c (bm_free): fix memory leak.  [ruby-core:30869] [Bug #3466]
+
+Thu Jul 15 15:47:32 2010  NARUSE, Yui  <naruse@ruby-lang.org>
+
+	* regexec.c (onig_search): don't skip non-ANYCHARs when
+	  .* fails to match. This causes to fail matching
+	  ANYCHAR_STAR with LOOK_BEHIND. This fix is workaround
+	  and disable the optimization. [ruby-dev:41851]
+
+Thu Jul 15 06:11:29 2010  Aaron Patterson <aaron@tenderlovemaking.com>
+
+	* lib/rdoc/markup/attribute_manager.rb: fixing ri output when special
+	  characters are inside html tags.  Thanks Tomo Kazahaya! [Bug #3512]
+
+Thu Jul 15 06:01:42 2010  Tanaka Akira  <akr@fsij.org>
+
+	* time.c (guess_local_offset): use the UTC offset of an older date on
+	  64bit time_t environment.
+
+Thu Jul 15 02:42:51 2010  Aaron Patterson <aaron@tenderlovemaking.com>
+
+	* lib/test/unit.rb (setup_argv): convert to using optparse, adding
+	  --help and -I. [ruby-core:30154]
+
+Thu Jul 15 00:35:09 2010  Tanaka Akira  <akr@fsij.org>
+
+	* time.c (localtime_with_gmtoff_zone): renamed from
+	  localtime_with_gmtoff and return the timezone abbreviation name.
+	  (guess_local_offset): return the isdst and timezone abbreviation name.
+	  (localtimew): use the returned isdst and timezone abbreviation name.
+	  [ruby-core:31275]
+
+Wed Jul 14 20:23:08 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* eval.c (frame_func_id), vm_eval.c (rb_iterate),
+	  vm_insnhelper.c (vm_yield_with_cfunc): as the name of a C-level
+	  block, use the current method ID at the creation point.
+	  [ruby-dev:41852]
+
+Wed Jul 14 18:18:05 2010  NARUSE, Yui  <naruse@ruby-lang.org>
+
+	* regexec.c (match_at): add end point to enclen's argument.
+	  This only effect on compilinig with -DONIG_DEBUG_MATCH.
+
+Tue Jul 13 21:34:17 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* ext/readline/readline.c: libedit is missing declaration of
+	  rl_getc.
+
+Tue Jul 13 21:31:15 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* process.c (rb_daemon): split from proc_daemon.
+
+	* process.c (rb_fork_err): suppress gcc 4.4 warnings.
+
+	* random.c (fill_random_seed): ditto.
+
+Tue Jul 13 21:01:44 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* ext/pty/pty.c (establishShell): chfunc must not raise any
+	  exceptions.
+
+Tue Jul 13 20:58:57 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* configure.in (RUBY_DEFAULT_ARCH): adjust for target
+	  cpu. [ruby-core:31243]
+
+Tue Jul 13 20:46:00 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* ext/dl/handle.c (rb_dlhandle_close): should not pass a dynamic
+	          string to rb_raise directly.
+
+Tue Jul 13 12:04:57 2010  NARUSE, Yui  <naruse@ruby-lang.org>
+
+	* missing/close.c: keep original errno.
+
 Mon Jul 12 01:58:56 2010  Marc-Andre Lafortune  <ruby-core@marc-andre.ca>
 
 	* lib/csv.rb: Fix unused variable warnings.
