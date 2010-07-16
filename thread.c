@@ -4173,7 +4173,6 @@ static void
 queue_mark(void *ptr)
 {
     Queue *queue = ptr;
-    /* mutex_mark(queue->mutex); */
     rb_gc_mark(queue->mutex);
     rb_gc_mark(queue->que);
     rb_gc_mark(queue->waiting);
@@ -4223,7 +4222,6 @@ queue_alloc(VALUE klass)
     VALUE volatile obj;
     Queue *queue;
     obj = TypedData_Make_Struct(klass, Queue, &queue_data_type, queue);
-    //GetQueuePtr(self, queue);
 
     queue->mutex = rb_mutex_new();
     queue->que = rb_ary_new();
