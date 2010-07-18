@@ -4227,6 +4227,10 @@ queue_alloc(VALUE klass)
     queue->que = rb_ary_new();
     queue->waiting = rb_ary_new();
 
+    OBJ_TAINT(queue->que);
+    OBJ_TAINT(queue->waiting);
+    OBJ_TAINT(obj);
+
     return obj;
 }
 
