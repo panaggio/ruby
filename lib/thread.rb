@@ -31,12 +31,17 @@ end
 #
 
 class Semaphore
-
+  #
+  # Creates a new Semaphore
+  #
   def initialize(initvalue = 0)
     @counter = initvalue
     @waiting_list = []
   end
 
+  #
+  # Attempts to enter and waits if the semaphore is already full
+  #
   def wait
     Thread.critical = true
     if (@counter -= 1) < 0
@@ -48,6 +53,9 @@ class Semaphore
     Thread.critical = false
   end
 
+  #
+  # Leaves and let another thread in, if there's any waiting
+  #
   def signal
     Thread.critical = true
     begin
@@ -68,6 +76,9 @@ class Semaphore
   alias P wait
   alias V signal
 
+  #
+  # Enters, runs a block, and leaves when the block completes.
+  #
   def exclusive
     wait
     yield
