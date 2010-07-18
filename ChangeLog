@@ -1,7 +1,62 @@
-Fri Jul 16 22:08:10 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+Mon Jul 19 05:46:09 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
 
-	* lib/test/unit.rb, bin/testrb, test/runner.rb: revert r28655, which
-	  broke test-all.
+	* include/ruby/ruby.h (rb_data_type_t): add new feature macros.
+
+Sun Jul 18 21:20:11 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* array.c (rb_ary_clear): no need to duplicate buffer just before
+	  clearing.
+
+Sun Jul 18 16:31:50 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* include/ruby/ruby.h (rb_data_type_t): restructured.  [ruby-dev:41862]
+	  add parent member.
+
+	* error.c (rb_typeddata_inherited_p): new function.
+
+Sun Jul 18 01:09:27 2010  Tanaka Akira  <akr@fsij.org>
+
+	* ext/pathname/pathname.c (path_initialize): return a value.
+
+Sun Jul 18 00:02:19 2010  Tanaka Akira  <akr@fsij.org>
+
+	* ext/pathname/lib/pathname.rb (Pathname#initialize): removed.
+
+	* ext/pathname/pathname.c (path_initialize): implemented.
+	  (get_strpath): new function.
+	  (set_strpath): ditto.
+
+Sat Jul 17 19:01:47 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* lib/test/unit.rb (MiniTest::Unit#process_args): refactored.
+
+Sat Jul 17 18:30:05 2010  Tanaka Akira  <akr@fsij.org>
+
+	* tool/file2lastrev.rb: don't depend on pathname.rb if File.realpath
+	  is available.
+
+Sat Jul 17 14:10:20 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* util.c (ruby_add_suffix): fixed type warnings.
+
+Sat Jul 17 13:48:22 2010  Tanaka Akira  <akr@fsij.org>
+
+	* ext/pathname/lib/pathname.rb: moved from lib/pathname.rb.
+	  require pathname.so.
+
+	* ext/pathname/pathname.c: new file to define empty Pathname class.
+
+	* ext/pathname/extconf.rb: new file.
+
+Sat Jul 17 13:04:45 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* thread.c (rb_thread_wakeup_alive): split from rb_thread_wakeup.
+	  merged from r13476.  c.f. [ruby-core:31320]
+
+Sat Jul 17 10:07:52 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* lib/test/unit.rb: MiniTest::Unit is different class from
+	  Test::Unit, and install runner before loading test/minitest.
 
 Fri Jul 16 14:58:38 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
 

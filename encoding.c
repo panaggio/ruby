@@ -59,7 +59,8 @@ enc_memsize(const void *p)
 }
 
 static const rb_data_type_t encoding_data_type = {
-    "encoding", 0, 0, enc_memsize,
+    "encoding",
+    {0, 0, enc_memsize,},
 };
 
 #define is_data_encoding(obj) (RTYPEDDATA_P(obj) && RTYPEDDATA_TYPE(obj) == &encoding_data_type)
@@ -1322,6 +1323,7 @@ set_default_internal(VALUE klass, VALUE encoding)
  *   Encoding.locale_charmap -> string
  *
  * Returns the locale charmap name.
+ * It returns nil if no appropriate information.
  *
  *   Debian GNU/Linux
  *     LANG=C
