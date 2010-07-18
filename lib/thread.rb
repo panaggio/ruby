@@ -137,7 +137,7 @@ end
 #
 #   consumer.join
 #
-class SlowQueue
+class Queue
   #
   # Creates a new queue.
   #

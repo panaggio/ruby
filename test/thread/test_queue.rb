@@ -6,11 +6,9 @@ class TestQueue < Test::Unit::TestCase
     grind(5, 1000, 15, Queue)
   end
 
-=begin
   def test_sized_queue
     grind(5, 1000, 15, SizedQueue, 1000)
   end
-=end
 
   def grind(num_threads, num_objects, num_iterations, klass, *args)
     from_workers = klass.new(*args)
