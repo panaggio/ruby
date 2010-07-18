@@ -397,6 +397,10 @@
 /ext/syslog/syslog.a
 /ext/syslog/conftest.dSYM
 
+# /ext/thread/
+/ext/thread/queue/Makefile
+/ext/thread/queue/extconf.h
+
 # /ext/tmpdir/
 /ext/tmpdir/Makefile
 /ext/tmpdir/extconf.h
