@@ -21,6 +21,65 @@ if $DEBUG
 end
 
 #
+# TODO: Document Semaphore
+#
+# Example:
+#
+#   require 'thread'
+#
+#   TODO: create a semaphore example
+#
+
+class Semaphore
+
+  def initialize(initvalue = 0)
+    @counter = initvalue
+    @waiting_list = []
+  end
+
+  def wait
+    Thread.critical = true
+    if (@counter -= 1) < 0
+      @waiting_list.push(Thread.current)
+      Thread.stop
+    end
+    self
+  ensure
+    Thread.critical = false
+  end
+
+  def signal
+    Thread.critical = true
+    begin
+      if (@counter += 1) <= 0
+	t = @waiting_list.shift
+	t.wakeup if t
+      end
+    rescue ThreadError
+      retry
+    end
+    self
+  ensure
+    Thread.critical = false
+  end
+
+  alias down wait
+  alias up signal
+  alias P wait
+  alias V signal
+
+  def exclusive
+    wait
+    yield
+  ensure
+    signal
+  end
+
+  alias synchronize exclusive
+
+end
+
+#
 # ConditionVariable objects augment class Mutex. Using condition variables,
 # it is possible to suspend while in the middle of a critical section until a
 # resource becomes available.
