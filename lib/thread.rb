@@ -96,7 +96,7 @@ class Semaphore
   #
   # Enters, runs a block, and leaves when the block completes.
   #
-  def exclusive
+  def synchronize
     wait
     yield
   ensure
@@ -106,7 +106,7 @@ class Semaphore
   #
   # Alias of exclusive
   #
-  alias synchronize exclusive
+  alias exclusive synchronize
 
 end
 
