@@ -26,6 +26,11 @@ static int native_mutex_unlock(rb_thread_lock_t *);
 static int native_mutex_trylock(rb_thread_lock_t *);
 static void native_mutex_initialize(rb_thread_lock_t *);
 
+static void native_sem_signal(rb_thread_semaphore_t *sem);
+static void native_sem_wait(rb_thread_semaphore_t *sem);
+static void native_sem_initialize(rb_thread_semaphore_t *sem);
+static void native_sem_destroy(rb_thread_semaphore_t *sem);
+
 static void native_cond_signal(rb_thread_cond_t *cond);
 static void native_cond_broadcast(rb_thread_cond_t *cond);
 static void native_cond_wait(rb_thread_cond_t *cond, rb_thread_lock_t *mutex);
@@ -340,6 +345,30 @@ native_mutex_destroy(rb_thread_lock_t *lock)
 #else
     DeleteCriticalSection(lock);
 #endif
+}
+
+static void
+native_sem_signal(rb_thread_semaphore_t *sem)
+{
+    /* FIXME */
+}
+
+static void
+native_sem_wait(rb_thread_semaphore_t *sem)
+{
+    /* FIXME */
+}
+
+static void
+native_sem_initialize(rb_thread_semaphore_t *sem)
+{
+    /* FIXME */
+}
+
+static void
+native_sem_destroy(rb_thread_semaphore_t *sem)
+{
+    /* FIXME */
 }
 
 struct cond_event_entry {

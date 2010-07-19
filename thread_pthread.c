@@ -23,6 +23,11 @@ static int native_mutex_trylock(pthread_mutex_t *lock);
 static void native_mutex_initialize(pthread_mutex_t *lock);
 static void native_mutex_destroy(pthread_mutex_t *lock);
 
+static void native_sem_signal(rb_thread_semaphore_t *sem);
+static void native_sem_wait(rb_thread_semaphore_t *sem);
+static void native_sem_initialize(rb_thread_semaphore_t *sem);
+static void native_sem_destroy(rb_thread_semaphore_t *sem);
+
 static void native_cond_signal(pthread_cond_t *cond);
 static void native_cond_broadcast(pthread_cond_t *cond);
 static void native_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
@@ -84,6 +89,30 @@ native_mutex_destroy(pthread_mutex_t *lock)
 	rb_bug_errno("pthread_mutex_destroy", r);
     }
 }
+
+static void
+native_sem_signal(rb_thread_semaphore_t *sem)
+{
+    /* FIXME */
+}
+
+static void
+native_sem_wait(rb_thread_semaphore_t *sem)
+{
+    /* FIXME */
+}
+static void
+native_sem_initialize(rb_thread_semaphore_t *sem)
+{
+    /* FIXME */
+}
+
+static void
+native_sem_destroy(rb_thread_semaphore_t *sem)
+{
+    /* FIXME */
+}
+
 
 static void
 native_cond_initialize(pthread_cond_t *cond)
