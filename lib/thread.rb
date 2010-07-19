@@ -37,6 +37,8 @@ class Semaphore
   def initialize(initvalue = 0)
     @counter = initvalue
     @waiting = []
+    @waiting.taint
+    self.taint
   end
 
   #
