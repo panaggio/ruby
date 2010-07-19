@@ -59,6 +59,7 @@
 
 VALUE rb_cMutex;
 VALUE rb_cBarrier;
+VALUE rb_cSemaphore;
 
 static void sleep_timeval(rb_thread_t *th, struct timeval time);
 static void sleep_wait_for_interrupt(rb_thread_t *th, double sleepsec);
@@ -3423,6 +3424,105 @@ rb_mutex_synchronize(VALUE mutex, VALUE (*func)(VALUE arg), VALUE arg)
 }
 
 /*
+ * Document-class: Semaphore
+ *
+ * TODO: Copy lib/thread.rb documentation to here
+ *
+ * Example:
+ *
+ *   require 'thread'
+ *
+ *   TODO: Copy lib/thread.rb example to here
+ */
+
+#define GetSempahorePtr(obj, tobj) \
+    TypedData_Get_Struct(obj, semaphore_t, &semaphore_data_type, tobj)
+
+typedef struct {
+    rb_thread_semaphore_t semaphore;
+} semaphore_t;
+
+#define semaphore_mark NULL
+
+static void
+semaphore_free(void *ptr)
+{
+   /* FIXME */
+}
+
+static size_t
+semaphore_memsize(const void *ptr)
+{
+    return ptr ? sizeof(semaphore_t) : 0;
+}
+
+static const rb_data_type_t semaphore_data_type = {
+    "semaphore",
+    {semaphore_mark, semaphore_free, semaphore_memsize,},
+};
+
+static VALUE
+semaphore_alloc(VALUE klass)
+{
+    /* FIXME */
+}
+
+/*
+ *  call-seq:
+ *     Semaphore.new   -> semaphore
+ *
+ *  Creates a new Semaphore
+ */
+static VALUE
+semaphore_initialize(VALUE self)
+{
+    return self;
+}
+
+VALUE
+rb_semaphore_new(void)
+{
+    return semaphore_alloc(rb_cSemaphore);
+}
+
+/*
+ * call-seq:
+ *    semaphore.wait
+ *
+ * Attempts to enter and waits if the semaphore is already full
+ */
+VALUE
+rb_semaphore_wait(VALUE self)
+{
+    /* FIXME */
+}
+
+/*
+ * call-seq:
+ *    semaphore.signal
+ *
+ * Leaves and let another thread in, if there's any waiting
+ */
+VALUE
+rb_semaphore_signal(VALUE self)
+{
+    /* FIXME */
+}
+
+/*
+ * call-seq:
+ *    semaphore.synchronize { ... }    -> result of the block
+ *
+ * Enters, runs a block, and leaves when the block completes.
+ */
+
+VALUE
+rb_mutex_synchronize()
+{
+    /* FIXME */
+}
+
+/*
  * Document-class: Barrier
  */
 static void
@@ -4238,6 +4338,18 @@ Init_Thread(void)
     rb_define_method(rb_cMutex, "lock", rb_mutex_lock, 0);
     rb_define_method(rb_cMutex, "unlock", rb_mutex_unlock, 0);
     rb_define_method(rb_cMutex, "sleep", mutex_sleep, -1);
+
+    rb_cSemaphore = rb_define_class("Semaphore", rb_cObject);
+    rb_define_alloc_func(rb_cSemaphore, semaphore_alloc);
+    rb_define_method(rb_cSemaphore, "initialize", semaphore_initialize, 0);
+    rb_define_method(rb_cMutex, "wait", rb_semaphore_wait, 0);
+    rb_define_method(rb_cMutex, "signal", rb_semaphore_signal, 0);
+    rb_define_method(rb_cMutex, "synchronize", rb_semaphore_synchronize, 0);
+    rb_alias(rb_cSemaphore, rb_intern("down"), rb_intern("wait"));
+    rb_alias(rb_cSemaphore, rb_intern("P"), rb_intern("wait"));
+    rb_alias(rb_cSemaphore, rb_intern("up"), rb_intern("signal"));
+    rb_alias(rb_cSemaphore, rb_intern("V"), rb_intern("signal"));
+    rb_alias(rb_cSemaphore, rb_intern("exclusive"), rb_intern("synchronize"));
 
     recursive_key = rb_intern("__recursive_key__");
     rb_eThreadError = rb_define_class("ThreadError", rb_eStandardError);
