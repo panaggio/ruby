@@ -54,6 +54,16 @@ class Semaphore
   end
 
   #
+  # Alias of wait
+  #
+  alias down wait
+
+  #
+  # Alias of wait
+  #
+  alias P wait
+
+  #
   # Leaves and let another thread in, if there's any waiting
   #
   def signal
@@ -71,9 +81,14 @@ class Semaphore
     Thread.critical = false
   end
 
-  alias down wait
+  #
+  # Alias of signal
+  #
   alias up signal
-  alias P wait
+
+  #
+  # Alias of signal
+  #
   alias V signal
 
   #
@@ -86,6 +101,9 @@ class Semaphore
     signal
   end
 
+  #
+  # Alias of exclusive
+  #
   alias synchronize exclusive
 
 end
