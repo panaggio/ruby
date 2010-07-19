@@ -36,7 +36,7 @@ class Semaphore
   #
   def initialize(initvalue = 0)
     @counter = initvalue
-    @waiting_list = []
+    @waiting = []
   end
 
   #
@@ -45,7 +45,7 @@ class Semaphore
   def wait
     Thread.critical = true
     if (@counter -= 1) < 0
-      @waiting_list.push(Thread.current)
+      @waiting.push(Thread.current)
       Thread.stop
     end
     self
@@ -70,7 +70,7 @@ class Semaphore
     Thread.critical = true
     begin
       if (@counter += 1) <= 0
-	t = @waiting_list.shift
+	t = @waiting.shift
 	t.wakeup if t
       end
     rescue ThreadError
