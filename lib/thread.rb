@@ -37,7 +37,9 @@ class Semaphore
   def initialize(initvalue = 0)
     @counter = initvalue
     @waiting = []
+    @mutex = Mutex.new
     @waiting.taint
+    @mutex.taint
     self.taint
   end
 
@@ -45,16 +47,14 @@ class Semaphore
   # Attempts to enter and waits if the semaphore is already full
   #
   def wait
-    Thread.critical = true
-    if (@counter -= 1) < 0
-      @waiting.push(Thread.current)
-      Thread.stop
+    @mutex.synchronize do
+      if (@counter -= 1) < 0
+        @waiting.push(Thread.current)
+        Thread.stop
+      end
+      self
     end
-    self
-  ensure
-    Thread.critical = false
   end
-
   #
   # Alias of wait
   #
@@ -69,18 +69,17 @@ class Semaphore
   # Leaves and let another thread in, if there's any waiting
   #
   def signal
-    Thread.critical = true
-    begin
-      if (@counter += 1) <= 0
-	t = @waiting.shift
-	t.wakeup if t
+    @mutex.synchronize do
+      begin
+        if (@counter += 1) <= 0
+          t = @waiting.shift
+          t.wakeup if t
+        end
+      rescue ThreadError
+        retry
       end
-    rescue ThreadError
-      retry
+      self
     end
-    self
-  ensure
-    Thread.critical = false
   end
 
   #
