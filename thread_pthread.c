@@ -94,23 +94,41 @@ static void
 native_sem_signal(rb_thread_semaphore_t *sem)
 {
     /* FIXME */
+    int r = sem_post(sem);
+    if (r) {
+        rb_bug_errno("pthread_semaphore_signal", r);
+    }
 }
 
 static void
 native_sem_wait(rb_thread_semaphore_t *sem)
 {
     /* FIXME */
+    int r = sem_wait(sem);
+    if (r) {
+        rb_bug_errno("pthread_semaphore_wait", r);
+    }
 }
+
 static void
-native_sem_initialize(rb_thread_semaphore_t *sem)
+native_sem_initialize(rb_thread_semaphore_t *sem, int init_value)
 {
-    /* FIXME */
+    /* TODO: see if this definition is really necessary
+     * TODO: get a better place for this definition */
+#define SEMAPHORE_IS_SHARED 1
+    int r =  sem_init(sem, SEMAPHORE_IS_SHARED, init_value); 
+    if (r) {
+        rb_bug_errno("pthread_semaphore_init", r);
+    }
 }
 
 static void
 native_sem_destroy(rb_thread_semaphore_t *sem)
 {
-    /* FIXME */
+    int r = sem_destroy(sem)
+    if (r) {
+        rb_bug_errno("pthread_semaphore_destroy", r);
+    }
 }
 
 
