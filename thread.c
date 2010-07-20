@@ -3438,9 +3438,8 @@ rb_mutex_synchronize(VALUE mutex, VALUE (*func)(VALUE arg), VALUE arg)
 #define GetSempahorePtr(obj, tobj) \
     TypedData_Get_Struct(obj, semaphore_t, &semaphore_data_type, tobj)
 
-typedef struct {
-    rb_thread_semaphore_t semaphore;
-} semaphore_t;
+/* TODO: check if there's no need for a structure */
+#define rb_thread_semaphore_t semaphore_t;
 
 #define semaphore_mark NULL
 
