@@ -3514,7 +3514,7 @@ VALUE
 rb_semaphore_new(unsigned int init_value)
 {
     VALUE sem = semaphore_alloc(rb_cSemaphore);
-    return semaphore_initialize_1(sem, init_value);
+    return semaphore_initialize1(sem, init_value);
 }
 
 /*
