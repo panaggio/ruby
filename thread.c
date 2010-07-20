@@ -3471,7 +3471,6 @@ semaphore_alloc(VALUE klass)
     semaphore_t *sem;
 
     obj = TypedData_Make_Struct(klass, semaphore_t, &semaphore_data_type, sem);
-    native_sem_initialize(sem);
     return obj;
 }
 
@@ -3482,8 +3481,23 @@ semaphore_alloc(VALUE klass)
  *  Creates a new Semaphore
  */
 static VALUE
-semaphore_initialize(VALUE self)
+semaphore_initialize(int argc, VALUE *argv, VALUE self)
 {
+    int init_value = 0;
+    semaphore_t *sem;
+    GetSempahorePtr(self, sem);
+
+    switch (argc) {
+        case 0:
+         break;
+        case 1:
+         init_value = NUM2UINT(argv[0]);
+         break;
+        default:
+         rb_raise(rb_eArgError, "wrong number of arguments (%d for 1)", argc);
+    }
+
+    native_sem_initialize(sem, init_value);
     return self;
 }
 
@@ -4358,7 +4372,7 @@ Init_Thread(void)
 #endif
     rb_cSemaphore = DEFINE_CLASS_UNDER_THREAD("Semaphore", rb_cObject);
     rb_define_alloc_func(rb_cSemaphore, semaphore_alloc);
-    rb_define_method(rb_cSemaphore, "initialize", semaphore_initialize, 0);
+    rb_define_method(rb_cSemaphore, "initialize", semaphore_initialize, -1);
     rb_define_method(rb_cSemaphore, "wait", rb_semaphore_wait, 0);
     rb_define_method(rb_cSemaphore, "signal", rb_semaphore_signal, 0);
     rb_alias(rb_cSemaphore, rb_intern("down"), rb_intern("wait"));
