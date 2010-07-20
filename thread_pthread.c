@@ -125,7 +125,7 @@ native_sem_initialize(rb_thread_semaphore_t *sem, unsigned int init_value)
 static void
 native_sem_destroy(rb_thread_semaphore_t *sem)
 {
-    int r = sem_destroy(sem)
+    int r = sem_destroy(sem);
     if (r) {
         rb_bug_errno("pthread_semaphore_destroy", r);
     }
