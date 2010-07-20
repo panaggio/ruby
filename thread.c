@@ -3446,7 +3446,11 @@ rb_mutex_synchronize(VALUE mutex, VALUE (*func)(VALUE arg), VALUE arg)
 static void
 semaphore_free(void *ptr)
 {
-   /* FIXME */
+   if (ptr) {
+       semaphore_t *sem = ptr;
+       native_sem_destroy(sem);
+   }
+   ruby_xfree(ptr);
 }
 
 static size_t
@@ -3463,7 +3467,12 @@ static const rb_data_type_t semaphore_data_type = {
 static VALUE
 semaphore_alloc(VALUE klass)
 {
-    /* FIXME */
+    VALUE volatile obj;
+    semaphore_t *sem;
+
+    obj = TypedData_Make_Struct(klass, semaphre_t, &semaphore_data_type, sem);
+    native_sem_initialize(sem);
+    return obj;
 }
 
 /*
@@ -3493,7 +3502,9 @@ rb_semaphore_new(void)
 VALUE
 rb_semaphore_wait(VALUE self)
 {
-    /* FIXME */
+    VALUE sem = GetSempahorePtr(self, sem);
+    native_sem_wait(sem);
+    return self;
 }
 
 /*
@@ -3505,7 +3516,9 @@ rb_semaphore_wait(VALUE self)
 VALUE
 rb_semaphore_signal(VALUE self)
 {
-    /* FIXME */
+    VALUE sem = GetSempahorePtr(self, sem);
+    native_sem_signal(sem);
+    return self;
 }
 
 /*
