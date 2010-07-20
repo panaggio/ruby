@@ -28,7 +28,7 @@ static void native_mutex_initialize(rb_thread_lock_t *);
 
 static void native_sem_signal(rb_thread_semaphore_t *sem);
 static void native_sem_wait(rb_thread_semaphore_t *sem);
-static void native_sem_initialize(rb_thread_semaphore_t *sem);
+static void native_sem_initialize(rb_thread_semaphore_t *sem, unsigned int init_value);
 static void native_sem_destroy(rb_thread_semaphore_t *sem);
 
 static void native_cond_signal(rb_thread_cond_t *cond);
@@ -350,25 +350,37 @@ native_mutex_destroy(rb_thread_lock_t *lock)
 static void
 native_sem_signal(rb_thread_semaphore_t *sem)
 {
-    /* FIXME */
+    /* TODO: check if lReleaseCount (2nd parameter) is right */
+    if (ReleaseSemaphore(sem, 1, NULL) == FALSE) {
+        w32_error("native_sem_signal");
+    }
 }
 
 static void
 native_sem_wait(rb_thread_semaphore_t *sem)
 {
     /* FIXME */
+    if (WaitForSingleObject(sem, INFINITE) == WAIT_FAILED){
+        w32_error("native_sem_wait");
+    }
 }
 
 static void
-native_sem_initialize(rb_thread_semaphore_t *sem)
+native_sem_initialize(rb_thread_semaphore_t *sem, unsigned int init_value)
 {
-    /* FIXME */
+    /* TODO: check if the lInitialCount (2nd parameter) is right */
+    *sem = CreateSemaphore(NULL, 0, (long) init_value, NULL);
+    if (*sem == NULL) {
+        w32_error("native_sem_initialize");
+    }
 }
 
 static void
 native_sem_destroy(rb_thread_semaphore_t *sem)
 {
-    /* FIXME */
+    if (CloseHandle(sem) == FALSE) {
+        w32_error("native_sem_destroy");
+    }
 }
 
 struct cond_event_entry {
