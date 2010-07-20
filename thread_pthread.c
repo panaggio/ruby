@@ -25,7 +25,7 @@ static void native_mutex_destroy(pthread_mutex_t *lock);
 
 static void native_sem_signal(rb_thread_semaphore_t *sem);
 static void native_sem_wait(rb_thread_semaphore_t *sem);
-static void native_sem_initialize(rb_thread_semaphore_t *sem);
+static void native_sem_initialize(rb_thread_semaphore_t *sem, unsigned int init_value);
 static void native_sem_destroy(rb_thread_semaphore_t *sem);
 
 static void native_cond_signal(pthread_cond_t *cond);
@@ -111,7 +111,7 @@ native_sem_wait(rb_thread_semaphore_t *sem)
 }
 
 static void
-native_sem_initialize(rb_thread_semaphore_t *sem, int init_value)
+native_sem_initialize(rb_thread_semaphore_t *sem, unsigned int init_value)
 {
     /* TODO: see if this definition is really necessary
      * TODO: get a better place for this definition */
