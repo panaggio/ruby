@@ -3522,19 +3522,6 @@ rb_semaphore_signal(VALUE self)
 }
 
 /*
- * call-seq:
- *    semaphore.synchronize { ... }    -> result of the block
- *
- * Enters, runs a block, and leaves when the block completes.
- */
-
-VALUE
-rb_mutex_synchronize()
-{
-    /* FIXME */
-}
-
-/*
  * Document-class: Barrier
  */
 static void
@@ -4356,12 +4343,10 @@ Init_Thread(void)
     rb_define_method(rb_cSemaphore, "initialize", semaphore_initialize, 0);
     rb_define_method(rb_cMutex, "wait", rb_semaphore_wait, 0);
     rb_define_method(rb_cMutex, "signal", rb_semaphore_signal, 0);
-    rb_define_method(rb_cMutex, "synchronize", rb_semaphore_synchronize, 0);
     rb_alias(rb_cSemaphore, rb_intern("down"), rb_intern("wait"));
     rb_alias(rb_cSemaphore, rb_intern("P"), rb_intern("wait"));
     rb_alias(rb_cSemaphore, rb_intern("up"), rb_intern("signal"));
     rb_alias(rb_cSemaphore, rb_intern("V"), rb_intern("signal"));
-    rb_alias(rb_cSemaphore, rb_intern("exclusive"), rb_intern("synchronize"));
 
     recursive_key = rb_intern("__recursive_key__");
     rb_eThreadError = rb_define_class("ThreadError", rb_eStandardError);

@@ -93,21 +93,6 @@ class Semaphore
   #
   alias V signal
 
-  #
-  # Enters, runs a block, and leaves when the block completes.
-  #
-  def synchronize
-    wait
-    yield
-  ensure
-    signal
-  end
-
-  #
-  # Alias of exclusive
-  #
-  alias exclusive synchronize
-
 end
 
 #
