@@ -3470,7 +3470,7 @@ semaphore_alloc(VALUE klass)
     VALUE volatile obj;
     semaphore_t *sem;
 
-    obj = TypedData_Make_Struct(klass, semaphre_t, &semaphore_data_type, sem);
+    obj = TypedData_Make_Struct(klass, semaphore_t, &semaphore_data_type, sem);
     native_sem_initialize(sem);
     return obj;
 }
