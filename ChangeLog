@@ -1,3 +1,65 @@
+Tue Jul 20 11:35:11 2010  Evan Phoenix  <evan@ruby-lang.org>
+
+	* lib/rubygems.rb: Load the custom require if --disable-rubygems
+	  was used.
+
+Tue Jul 20 11:27:18 2010  Evan Phoenix  <evan@ruby-lang.org>
+
+	* gem_prelude.rb: Pull in rubygem's custom require
+	* lib/rubygems.rb: Handle always having custom require available
+
+Tue Jul 20 18:39:18 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* include/ruby/ruby.h (RSTRING_GETMEM): new macro to get ptr and
+	  len at once.
+
+	* string.c (rb_str_cmp, str_eql, rb_str_eql): trivial improvements.
+
+Tue Jul 20 18:23:04 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* ext/fiddle/closure.c (closure_data_type),
+	  ext/fiddle/function.c (function_data_type): rb_data_type_t has
+	  changed.
+
+Tue Jul 20 14:21:38 2010  Narihiro Nakamura  <authorNari@gmail.com>
+
+	* gc.c: don't call after_gc_sweep() after when garbage_collect()
+	  was called, because rb_sweep_method_entry() free live unlinked
+	  method entries. [ruby-core:31169]
+
+Tue Jul 20 12:42:06 2010  URABE Shyouhei  <shyouhei@ruby-lang.org>
+
+	* ext/socket/raddrinfo.c (rb_getaddrinfo): according to my
+	  valgrind output this variable should be initialized beforehand.
+
+Tue Jul 20 12:50:37 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* io.c (io_flush_buffer): write and buffer operations should be
+	  monolithic.  [ruby-core:31348]
+
+Tue Jul 20 12:27:56 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* lib/fileutils.rb (FileUtils::Entry_#copy): check file name
+	  spearator boundary.  [ruby-core:31360]
+
+Mon Jul 19 18:34:12 2010  Tanaka Akira  <akr@fsij.org>
+
+	* ext/pathname/pathname.c (get_strpath): check the type.
+	  (path_initialize): bypass to_path call for T_STRING.
+	  (path_freeze): implemented.
+
+	* ext/pathname/lib/pathname.rb (Pathname#freeze): removed.
+
+Mon Jul 19 12:33:29 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* array.c (rb_ary_clear): should not unshare embedded array, and
+	  should make unshared array embedded.
+
+Mon Jul 19 09:00:58 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* NEWS (Kernel#instance_eval): add an incompatible change since
+	  the 1.9.1 release.  [ruby-core:31336]
+
 Mon Jul 19 05:46:09 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
 
 	* include/ruby/ruby.h (rb_data_type_t): add new feature macros.
