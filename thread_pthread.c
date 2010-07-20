@@ -93,7 +93,6 @@ native_mutex_destroy(pthread_mutex_t *lock)
 static void
 native_sem_signal(rb_thread_semaphore_t *sem)
 {
-    /* FIXME */
     int r = sem_post(sem);
     if (r) {
         rb_bug_errno("pthread_semaphore_signal", r);
@@ -103,7 +102,6 @@ native_sem_signal(rb_thread_semaphore_t *sem)
 static void
 native_sem_wait(rb_thread_semaphore_t *sem)
 {
-    /* FIXME */
     int r = sem_wait(sem);
     if (r) {
         rb_bug_errno("pthread_semaphore_wait", r);
