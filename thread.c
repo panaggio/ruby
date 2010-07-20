@@ -3526,7 +3526,8 @@ rb_semaphore_new(unsigned int init_value)
 VALUE
 rb_semaphore_wait(VALUE self)
 {
-    VALUE sem = GetSempahorePtr(self, sem);
+    VALUE sem;
+    GetSempahorePtr(self, sem);
     native_sem_wait(sem);
     return self;
 }
@@ -3540,7 +3541,8 @@ rb_semaphore_wait(VALUE self)
 VALUE
 rb_semaphore_signal(VALUE self)
 {
-    VALUE sem = GetSempahorePtr(self, sem);
+    VALUE sem;
+    GetSempahorePtr(self, sem);
     native_sem_signal(sem);
     return self;
 }
