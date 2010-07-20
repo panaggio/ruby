@@ -4341,8 +4341,8 @@ Init_Thread(void)
     rb_cSemaphore = rb_define_class("Semaphore", rb_cObject);
     rb_define_alloc_func(rb_cSemaphore, semaphore_alloc);
     rb_define_method(rb_cSemaphore, "initialize", semaphore_initialize, 0);
-    rb_define_method(rb_cMutex, "wait", rb_semaphore_wait, 0);
-    rb_define_method(rb_cMutex, "signal", rb_semaphore_signal, 0);
+    rb_define_method(rb_cSemaphore, "wait", rb_semaphore_wait, 0);
+    rb_define_method(rb_cSemaphore, "signal", rb_semaphore_signal, 0);
     rb_alias(rb_cSemaphore, rb_intern("down"), rb_intern("wait"));
     rb_alias(rb_cSemaphore, rb_intern("P"), rb_intern("wait"));
     rb_alias(rb_cSemaphore, rb_intern("up"), rb_intern("signal"));
