@@ -3474,6 +3474,8 @@ semaphore_alloc(VALUE klass)
     return obj;
 }
 
+static VALUE semaphore_initialize1(VALUE self, unsigned int init_value);
+
 /*
  *  call-seq:
  *     Semaphore.new   -> semaphore
@@ -3483,10 +3485,7 @@ semaphore_alloc(VALUE klass)
 static VALUE
 semaphore_initialize(int argc, VALUE *argv, VALUE self)
 {
-    int init_value = 0;
-    semaphore_t *sem;
-    GetSempahorePtr(self, sem);
-
+    unsigned int init_value = 0;
     switch (argc) {
         case 0:
          break;
@@ -3497,14 +3496,25 @@ semaphore_initialize(int argc, VALUE *argv, VALUE self)
          rb_raise(rb_eArgError, "wrong number of arguments (%d for 1)", argc);
     }
 
+    semaphore_initialize1(self, init_value);
+    return self;
+}
+
+static VALUE
+semaphore_initialize1(VALUE self, unsigned int init_value)
+{
+    semaphore_t *sem;
+    GetSempahorePtr(self, sem);
+
     native_sem_initialize(sem, init_value);
     return self;
 }
 
 VALUE
-rb_semaphore_new(void)
+rb_semaphore_new(unsigned int init_value)
 {
-    return semaphore_alloc(rb_cSemaphore);
+    VALUE sem = semaphore_alloc(rb_cSemaphore);
+    return semaphore_initialize_1(sem, init_value);
 }
 
 /*
