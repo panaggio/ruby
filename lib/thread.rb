@@ -49,18 +49,10 @@ class Semaphore
         @waiting.push(Thread.current)
         Thread.stop
       end
-      self
     end
   end
-  #
-  # Alias of wait
-  #
-  alias down wait
 
-  #
-  # Alias of wait
-  #
-  alias P wait
+  alias down wait
 
   #
   # Leaves and let another thread in, if there's any waiting
@@ -70,25 +62,16 @@ class Semaphore
       begin
         #if (@counter = [@counter+1,@max].min) <= 0
         if (@counter += 1) <= 0
-          t = @waiting.shift
+          t = @waiting.pop
           t.wakeup if t
         end
       rescue ThreadError
         retry
       end
-      self
     end
   end
 
-  #
-  # Alias of signal
-  #
   alias up signal
-
-  #
-  # Alias of signal
-  #
-  alias V signal
 
   def num_waiting
     @waiting.size
