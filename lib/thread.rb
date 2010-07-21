@@ -38,9 +38,6 @@ class Semaphore
     @counter = @max  = initvalue
     @waiting = []
     @mutex = Mutex.new
-    @waiting.taint
-    @mutex.taint
-    self.taint
   end
 
   #
