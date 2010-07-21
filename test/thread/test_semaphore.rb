@@ -17,24 +17,25 @@ class TestSemaphore < Test::Unit::TestCase
     mutex = Mutex.new
 
     producer_data = (1..data_count).to_a
+    consumer_data = []
+
     producer = Thread.new do
       while producer_data.size > 0
         emptycount.down
         mutex.synchronize do
           pipe.push producer_data.pop
-          p pipe
+          p [producer_data, pipe, consumer_data]
         end
         fillcount.up
       end
     end
 
-    consumer_data = []
     consumer = Thread.new do
       while consumer_data.size < data_count
         fillcount.down
         mutex.synchronize do
           consumer_data.push pipe.pop
-          p pipe
+          p [producer_data, pipe, consumer_data]
         end
         emptycount.up
       end
