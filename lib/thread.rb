@@ -92,6 +92,9 @@ class Semaphore
   #
   alias V signal
 
+  def num_waiting
+    @waiting.size
+  end
 end
 
 #
