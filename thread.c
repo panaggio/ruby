@@ -4369,7 +4369,6 @@ Init_Thread(void)
 #endif
 
 #if UNDER_THREAD
-#ifndef DEFINE_CLASS_UNDER_THREAD
 #define DEFINE_CLASS_UNDER_THREAD(name, super) rb_define_class_under(rb_cThread, #name, super)
 #define ALIAS_GLOBCAL_CONST(name) do {                 \
        ID id = rb_intern_const(#name);                 \
@@ -4380,7 +4379,6 @@ Init_Thread(void)
 #else
 #define DEFINE_CLASS_UNDER_THREAD(name, super) rb_define_class(name, super)
 #define ALIAS_GLOBCAL_CONST(name) do { /* nothing */ } while (0)
-#endif
 #endif
     rb_cSemaphore = DEFINE_CLASS_UNDER_THREAD("Semaphore", rb_cObject);
     rb_define_alloc_func(rb_cSemaphore, semaphore_alloc);
