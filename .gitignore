@@ -309,6 +309,10 @@
 /ext/openssl/openssl.a
 /ext/openssl/conftest.dSYM
 
+# /ext/pathname
+/ext/pathname/Makefile
+/ext/pathname/extconf.h
+
 # /ext/psych/
 /ext/psych/Makefile
 /ext/psych/extconf.h
