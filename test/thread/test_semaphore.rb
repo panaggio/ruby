@@ -2,13 +2,19 @@ require 'test/unit'
 require 'thread'
 
 class TestSemaphore < Test::Unit::TestCase
-  def test_semaphore
+  def test_semaphore_1
     reader_writer(10, Semaphore)
+  end
+
+  def test_semaphore_2
     producer_consumer(3, 5, Semaphore)
   end
 
-  def test_thread_semaphore
+  def test_thread_semaphore_1
     reader_writer(10, Thread::Semaphore)
+  end
+
+  def test_thread_semaphore_2
     producer_consumer(3, 5, Thread::Semaphore)
   end
 
