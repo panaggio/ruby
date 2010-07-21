@@ -35,7 +35,7 @@ class Semaphore
   # Creates a new Semaphore
   #
   def initialize(initvalue = 0)
-    @counter = initvalue
+    @counter = @max  = initvalue
     @waiting = []
     @mutex = Mutex.new
     @waiting.taint
