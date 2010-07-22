@@ -96,6 +96,7 @@ class TestSemaphore < Test::Unit::TestCase
     consumer.join
     producer.join
 
+    assert_equal 0, sem.num_waiting
     assert_equal 0, producer_data.size
     assert_equal data_count, consumer_data.size
   end
