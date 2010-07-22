@@ -72,10 +72,6 @@ class Semaphore
   end
 
   alias up signal
-
-  def num_waiting
-    @waiting.size
-  end
 end
 
 #
