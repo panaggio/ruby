@@ -63,7 +63,7 @@ class TestSemaphore < Test::Unit::TestCase
   end
 
   def producer_consumer(buffer_size, data_count, klass, *args)
-    fillcount  = klass.new(0)
+    fillcount  = klass.new(1)
     emptycount = klass.new(buffer_size)
     pipe = []
     mutex = Mutex.new
