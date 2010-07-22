@@ -27,6 +27,15 @@ class TestSemaphore < Test::Unit::TestCase
     read_msgs = []
     msgs = (1..num_msgs).to_a
 
+    writer = Thread.new do
+      while msgs.size > 0
+        wsem.wait
+          stream << msgs.pop
+        p [msgs, stream, read_msgs]
+        wsem.signal
+      end
+    end
+
     reader = Thread.new do
       while read_msgs.size < num_msgs
         rsem.wait
@@ -41,15 +50,6 @@ class TestSemaphore < Test::Unit::TestCase
           readcount -= 1
           wsem.signal if readcount.zero?
         rsem.signal
-      end
-    end
-
-    writer = Thread.new do
-      while msgs.size > 0
-        wsem.wait
-          stream << msgs.pop
-        p [msgs, stream, read_msgs]
-        wsem.signal
       end
     end
 
