@@ -420,6 +420,15 @@ get_hash(volatile VALUE *hash, int argc, const VALUE *argv)
  *     sprintf("%1$*2$s %2$d", "hello", -8)       #=> "hello    -8"
  *     sprintf("%+g:% g:%-g", 1.23, 1.23, 1.23)   #=> "+1.23: 1.23:1.23"
  *     sprintf("%u", -123)                        #=> "-123"
+ *
+ *  For more complex formatting, Ruby supports a reference by name.
+ *  %<name>s style uses format style, but ${name} style doesn't.
+ *
+ *  Exapmles:
+ *    sprintf("%<foo>d : %<bar>f" % { :foo => 1, :bar => 2 })
+ *      #=> 1 : 2.000000
+ *    sprintf("%d %{foo}" % { :foo => 'bar' })
+ *      # => "%d bar"
  */
 
 VALUE
@@ -1115,6 +1124,7 @@ fmt_setup(char *buf, size_t size, int c, int flags, int width, int prec)
 #endif
 #define FLOATING_POINT 1
 #define BSD__dtoa ruby_dtoa
+#define BSD__hdtoa ruby_hdtoa
 #include "vsnprintf.c"
 
 static int

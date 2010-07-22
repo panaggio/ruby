@@ -27,6 +27,10 @@ extern "C" {
 #include <stdio_ext.h>
 #endif
 
+#if defined __GNUC__ && __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 typedef struct rb_io_t {
     int fd;                     /* file descriptor */
     FILE *stdio_file;		/* stdio ptr for read/write if available */
@@ -153,6 +157,7 @@ void rb_io_check_closed(rb_io_t*);
 int rb_io_wait_readable(int);
 int rb_io_wait_writable(int);
 void rb_io_set_nonblock(rb_io_t *fptr);
+int rb_io_extract_encoding_option(VALUE opt, rb_encoding **enc_p, rb_encoding **enc2_p, int *fmode_p);
 
 /* compatibility for ruby 1.8 and older */
 #define rb_io_mode_flags(modestr) rb_io_modestr_fmode(modestr)
@@ -164,6 +169,10 @@ NORETURN(void rb_eof_error(void));
 void rb_io_read_check(rb_io_t*);
 int rb_io_read_pending(rb_io_t*);
 DEPRECATED(void rb_read_check(FILE*));
+
+#if defined __GNUC__ && __GNUC__ >= 4
+#pragma GCC visibility pop
+#endif
 
 #if defined(__cplusplus)
 #if 0

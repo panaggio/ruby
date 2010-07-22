@@ -1,3 +1,92 @@
+Thu Jul 22 20:58:55 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* configure.in (RUBY_EXTERN): unnecessary after all.
+
+Thu Jul 22 20:12:56 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+
+	* thread_pthread.c (get_stack): fix memory leak; pthread_attr_destory
+	  must be called even when pthread_getattr_np is used.
+	  [ruby-core:31269]
+
+Thu Jul 22 16:27:41 2010  NARUSE, Yui  <naruse@ruby-lang.org>
+
+	* re.c (rb_reg_expr_str): fix broken Regexp#inspect when it
+	  is ASCII-8BIT and non-ASCII character.
+	  The length of character should be from original byte string.
+	  [ruby-core:31431]
+
+Thu Jul 22 14:30:17 2010  NARUSE, Yui  <naruse@ruby-lang.org>
+
+	* include/ruby/missing.h: add prototype for ruby_close().
+
+Thu Jul 22 12:58:12 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* configure.in (RUBY_EXTERN): ignore invalid attribute.
+
+	* configure.in: fix for older autoconf.
+
+Thu Jul 22 12:02:31 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* include/ruby/{intern,io}.h: add missing prototypes.
+
+Thu Jul 22 06:38:18 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* configure.in (XCFLAGS): use -fvisibility=hidden if possible.
+
+	* configure.in (RMDIR): use --ignore-fail-on-non-empty if possible.
+
+	* configure.in (RUBY_EXTERN): FUNCTION-BODY was missing.
+
+Thu Jul 22 03:02:55 2010  Eric Hodel  <drbrain@segment7.net>
+
+	* README.EXT: fix signature of rb_ensure and rb_rescue to match
+	  implementation.
+
+Wed Jul 21 23:07:11 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* template/fake.rb.in: get rid of embeding an absolute path.
+
+Wed Jul 21 15:22:17 2010  Evan Phoenix <evan@fallingsnow.net>
+
+	* lib/rubygems/custom_require.rb, gem_prelude.rb: Load code from
+		from gems properly.
+
+Wed Jul 21 15:15:02 2010  NARUSE, Yui  <naruse@ruby-lang.org>
+
+	* sprintf.c: add short documentation about named reference.
+	  [ruby-core:31294]
+
+Wed Jul 21 15:00:19 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* parse.y (local_push_gen): disable unused variable warnings in
+	  eval.  [ruby-dev:41869]
+
+Wed Jul 21 13:57:37 2010  NARUSE, Yui  <naruse@ruby-lang.org>
+
+	* vm_method.c (rb_method_boundp): revert r28543, r28564.
+	  They may be merged in Ruby 2.0. [ruby-core:31217]
+
+Wed Jul 21 13:37:35 2010  Marc-Andre Lafortune  <ruby-core@marc-andre.ca>
+
+	* lib/uri/common.rb: Have URI#route_to, URI#route_from accept
+	  string-like arguments [ruby-core:30961]
+
+	* lib/uri/generic.rb: ditto for URI.join, URI#merge
+
+Wed Jul 21 12:39:15 2010  Yusuke Endoh  <mame@tsg.ne.jp>
+
+	* lib/cmath.rb (CMath#cbrt): cbrt should accept a negative real
+	  numbers.  [ruby-core:31234]
+
+Wed Jul 21 12:31:30 2010  Marc-Andre Lafortune  <ruby-core@marc-andre.ca>
+
+	* lib/uri/common.rb: Have URI() and URI.join accept URI objects in
+	  addition to strings. [ruby-core:30960]
+
+Wed Jul 21 11:55:06 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>
+
+	* util.c (ruby_hdtoa): renamed from BSD__hdtoa.
+
 Tue Jul 20 11:35:11 2010  Evan Phoenix  <evan@ruby-lang.org>
 
 	* lib/rubygems.rb: Load the custom require if --disable-rubygems
@@ -6,6 +95,7 @@ Tue Jul 20 11:35:11 2010  Evan Phoenix  <evan@ruby-lang.org>
 Tue Jul 20 11:27:18 2010  Evan Phoenix  <evan@ruby-lang.org>
 
 	* gem_prelude.rb: Pull in rubygem's custom require
+
 	* lib/rubygems.rb: Handle always having custom require available
 
 Tue Jul 20 18:39:18 2010  Nobuyoshi Nakada  <nobu@ruby-lang.org>

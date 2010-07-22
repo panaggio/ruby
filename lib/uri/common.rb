@@ -184,12 +184,9 @@ module URI
       end
     end
 
-    def join(*str)
-      u = self.parse(str[0])
-      str[1 .. -1].each do |x|
-	u = u.merge(x)
-      end
-      u
+    def join(*uris)
+      uris[0] = URI(uris[0], self)
+      uris.inject :merge
     end
 
     def extract(str, schemes = nil, &block)
@@ -837,11 +834,19 @@ module URI
 end
 
 module Kernel
-  # alias for URI.parse.
+
   #
-  # This method is introduced at 1.8.2.
-  def URI(uri_str) # :doc:
-    URI.parse(uri_str)
+  # Returns +uri+ converted to a URI object.
+  #
+  def URI(uri, parser = URI::DEFAULT_PARSER)
+    if uri.is_a?(URI::Generic)
+      uri
+    elsif uri = String.try_convert(uri)
+      parser.parse(uri)
+    else
+      raise ArgumentError,
+        "bad argument (expected URI object or URI string)"
+    end
   end
   module_function :URI
 end
