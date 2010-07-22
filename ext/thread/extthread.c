@@ -687,6 +687,129 @@ rb_szqueue_num_waiting(VALUE self)
     return ULONG2NUM(len);
 }
 
+/*
+ * Document-class: Semaphore
+ *
+ * TODO: Copy lib/thread.rb documentation to here
+ *
+ * Example:
+ *
+ *   require 'thread'
+ *
+ *   TODO: Copy lib/thread.rb example to here
+ */
+
+#define GetSempahorePtr(obj, tobj) \
+    TypedData_Get_Struct(obj, semaphore_t, &semaphore_data_type, tobj)
+
+/* TODO: check if there's no need for a structure */
+#define semaphore_t rb_thread_semaphore_t
+
+#define semaphore_mark NULL
+
+static void
+semaphore_free(void *ptr)
+{
+   if (ptr) {
+       semaphore_t *sem = ptr;
+       native_sem_destroy(sem);
+   }
+   ruby_xfree(ptr);
+}
+
+static size_t
+semaphore_memsize(const void *ptr)
+{
+    return ptr ? sizeof(semaphore_t) : 0;
+}
+
+static const rb_data_type_t semaphore_data_type = {
+    "semaphore",
+    {semaphore_mark, semaphore_free, semaphore_memsize,},
+};
+
+static VALUE
+semaphore_alloc(VALUE klass)
+{
+    VALUE volatile obj;
+    semaphore_t *sem;
+
+    obj = TypedData_Make_Struct(klass, semaphore_t, &semaphore_data_type, sem);
+    return obj;
+}
+
+static VALUE semaphore_initialize1(VALUE self, unsigned int init_value);
+
+/*
+ *  call-seq:
+ *     Semaphore.new   -> semaphore
+ *
+ *  Creates a new Semaphore
+ */
+static VALUE
+semaphore_initialize(int argc, VALUE *argv, VALUE self)
+{
+    unsigned int init_value = 0;
+    switch (argc) {
+        case 0:
+         break;
+        case 1:
+         init_value = NUM2UINT(argv[0]);
+         break;
+        default:
+         rb_raise(rb_eArgError, "wrong number of arguments (%d for 1)", argc);
+    }
+
+    semaphore_initialize1(self, init_value);
+    return self;
+}
+static VALUE
+semaphore_initialize1(VALUE self, unsigned int init_value)
+{
+    semaphore_t *sem;
+    GetSempahorePtr(self, sem);
+
+    native_sem_initialize(sem, init_value);
+    return self;
+}
+
+VALUE
+rb_semaphore_new(unsigned int init_value)
+{
+    VALUE sem = semaphore_alloc(rb_cSemaphore);
+    return semaphore_initialize1(sem, init_value);
+}
+
+/*
+ * call-seq:
+ *    semaphore.wait
+ *
+ * Attempts to enter and waits if the semaphore is already full
+ */
+VALUE
+rb_semaphore_wait(VALUE self)
+{
+    semaphore_t *sem;
+    GetSempahorePtr(self, sem);
+    native_sem_wait(sem);
+    return self;
+}
+
+/*
+ * call-seq:
+ *    semaphore.signal
+ *
+ * Leaves and let another thread in, if there's any waiting
+ */
+VALUE
+rb_semaphore_signal(VALUE self)
+{
+    semaphore_t *sem;
+    GetSempahorePtr(self, sem);
+    native_sem_signal(sem);
+    return self;
+}
+
 #ifndef UNDER_THREAD
 #define UNDER_THREAD 1
 #endif
@@ -709,6 +832,7 @@ Init_extthread(void)
     VALUE rb_cConditionVariable = DEFINE_CLASS_UNDER_THREAD(ConditionVariable, rb_cObject);
     VALUE rb_cQueue = DEFINE_CLASS_UNDER_THREAD(Queue, rb_cObject);
     VALUE rb_cSizedQueue = DEFINE_CLASS_UNDER_THREAD(SizedQueue, rb_cQueue);
+    VALUE rb_cSemaphore = DEFINE_CLASS_UNDER_THREAD(Semaphore, rb_cObject);
 
     rb_define_alloc_func(rb_cConditionVariable, condvar_alloc);
     rb_define_method(rb_cConditionVariable, "initialize", rb_condvar_initialize, 0);
@@ -742,8 +866,19 @@ Init_extthread(void)
     rb_alias(rb_cSizedQueue, rb_intern("deq"), rb_intern("pop"));
     rb_alias(rb_cSizedQueue, rb_intern("shift"), rb_intern("pop"));
 
+    rb_cSemaphore = DEFINE_CLASS_UNDER_THREAD("Semaphore", rb_cObject);
+    rb_define_alloc_func(rb_cSemaphore, semaphore_alloc);
+    rb_define_method(rb_cSemaphore, "initialize", semaphore_initialize, -1);
+    rb_define_method(rb_cSemaphore, "wait", rb_semaphore_wait, 0);
+    rb_define_method(rb_cSemaphore, "signal", rb_semaphore_signal, 0);
+    rb_alias(rb_cSemaphore, rb_intern("down"), rb_intern("wait"));
+    rb_alias(rb_cSemaphore, rb_intern("P"), rb_intern("wait"));
+    rb_alias(rb_cSemaphore, rb_intern("up"), rb_intern("signal"));
+    rb_alias(rb_cSemaphore, rb_intern("V"), rb_intern("signal"));
+
     rb_provide("thread.rb");
     ALIAS_GLOBCAL_CONST(ConditionVariable);
     ALIAS_GLOBCAL_CONST(Queue);
     ALIAS_GLOBCAL_CONST(SizedQueue);
+    ALIAS_GLOBCAL_CONST(Semaphore);
 }
