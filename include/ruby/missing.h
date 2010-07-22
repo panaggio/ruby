@@ -49,6 +49,10 @@ struct timezone {
 #define RUBY_EXTERN extern
 #endif
 
+#if defined __GNUC__ && __GNUC__ >= 4
+#pragma GCC visibility push(default)
+#endif
+
 #ifndef HAVE_ACOSH
 RUBY_EXTERN double acosh(double);
 RUBY_EXTERN double asinh(double);
@@ -167,6 +171,19 @@ RUBY_EXTERN int signbit(double x);
 
 #ifndef HAVE_FFS
 RUBY_EXTERN int ffs(int);
+#endif
+
+#ifndef HAVE_CLOSE
+#include <sys/types.h>
+#include <sys/socket.h>
+RUBY_EXTERN int ruby_getpeername(int, struct sockaddr *, socklen_t *);
+RUBY_EXTERN int ruby_getsockname(int, struct sockaddr *, socklen_t *);
+RUBY_EXTERN int ruby_shutdown(int, int);
+RUBY_EXTERN int ruby_close(int);
+#endif
+
+#if defined __GNUC__ && __GNUC__ >= 4
+#pragma GCC visibility pop
 #endif
 
 #if defined(__cplusplus)

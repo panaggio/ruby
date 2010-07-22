@@ -1,1 +1,1 @@
-create_makefile('thread')
+create_makefile('extthread')

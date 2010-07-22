@@ -361,10 +361,14 @@ AC_USE_SYSTEM_EXTENSIONS
 AC_SUBST(RM, ['rm -f'])
 AC_SUBST(CP, ['cp'])
 RMDIRS='$(top_srcdir)/tool/rmdirs'
+RMDIR=rmdir
 mkdir "rmdirs_$$_test" "rmdirs_$$_test/a"
-rmdir -p "rmdirs_$$_test/a" 2>/dev/null &&
-{ test -d "rmdirs_$$_test" || RMDIRS='rmdir -p'; }
+rmdir --ignore-fail-on-non-empty "rmdirs_$$_test" 2>/dev/null &&
+RMDIR='rmdir --ignore-fail-on-non-empty'
+$RMDIR -p "rmdirs_$$_test/a" 2>/dev/null &&
+{ test -d "rmdirs_$$_test" || RMDIRS="$RMDIR -p"; }
 rmdir "rmdirs_$$_test/a" "rmdirs_$$_test" 2>/dev/null
+AC_SUBST(RMDIR)
 AC_SUBST(RMDIRS)
 AC_SUBST(RMALL, ['rm -fr'])
 
@@ -409,6 +413,9 @@ if test "$GCC:${warnflags+set}:no" = yes::no; then
     AS_CASE([" $warnflags "],[*" -Wno-missing-field-initializers "*], [wflag=-Wextra],
                              [wflag=-Wall])
     RUBY_TRY_CFLAGS($wflag, [warnflags="$wflag${warnflags+ $warnflags}"])
+fi
+if test "$GCC" = yes; then
+    RUBY_TRY_CFLAGS(-fvisibility=hidden, [RUBY_APPEND_OPTION(XCFLAGS, -fvisibility=hidden)])
 fi
 
 test -z "${ac_env_CFLAGS_set}" -a -n "${cflags+set}" && eval CFLAGS="\"$cflags $ARCH_FLAG\""
@@ -668,6 +675,21 @@ EOH
 ])dnl
 ])dnl
 
+AC_DEFUN([RUBY_WERROR_FLAG], [dnl
+if test "${ac_c_werror_flag+set}"; then
+  rb_c_werror_flag="$ac_c_werror_flag"
+else
+  unset rb_c_werror_flag
+fi
+ac_c_werror_flag=yes
+$1
+if test "${rb_c_werror_flag+set}"; then
+  ac_c_werror_flag="$rb_c_werror_flag"
+else
+  unset ac_c_werror_flag
+fi])
+
+dnl RUBY_FUNC_ATTRIBUTE(attrib, macroname, cachevar, condition)
 AC_DEFUN([RUBY_FUNC_ATTRIBUTE], [dnl
 m4_ifval([$2], dnl
   [AS_VAR_PUSHDEF([attrib],[$2])], dnl
@@ -680,12 +702,7 @@ m4_ifval([$3], dnl
 m4_ifval([$4], [rbcv_cond=[$4]; test "$rbcv_cond" || unset rbcv_cond])
 AC_CACHE_CHECK(for [$1] function attribute, rbcv,
 [rbcv=x
-if test "${ac_c_werror_flag+set}"; then
-  rb_c_werror_flag="$ac_c_werror_flag"
-else
-  unset rb_c_werror_flag
-fi
-ac_c_werror_flag=yes
+RUBY_WERROR_FLAG([
 for mac in "__attribute__ (($1)) x" "x __attribute__ (($1))" "__declspec($1) x" x; do
   m4_ifval([$4],mac="$mac"${rbcv_cond+" /* only if $rbcv_cond */"})
   AC_TRY_COMPILE(
@@ -697,12 +714,7 @@ ${rbcv_cond+[@%:@endif]})
     attrib[(void conftest_attribute_check(void));], [],
     [rbcv="$mac"; break])
 done
-if test "${rb_c_werror_flag+set}"; then
-  ac_c_werror_flag="$rb_c_werror_flag"
-else
-  unset ac_c_werror_flag
-fi
-])
+])])
 if test "$rbcv" != x; then
     RUBY_DEFINE_IF([${rbcv_cond}], attrib[(x)], $rbcv)
 fi
@@ -734,15 +746,6 @@ if test "$GCC" = yes; then
 			   [RUBY_ALIAS_FUNCTION_TYPE(void, prot, name, args)])
     fi
 fi
-
-AC_CACHE_CHECK([for RUBY_EXTERN], rb_cv_ruby_extern,
-[rb_cv_ruby_extern=no
-for mac in "__attribute__((dllimport))" "__declspec(dllimport)"; do
-  AC_TRY_COMPILE(
-    [extern $mac void conftest(void);],
-    [rb_cv_ruby_extern="extern $mac"; break])
-done])
-test "x$rb_cv_ruby_extern" = xno || AC_DEFINE_UNQUOTED(RUBY_EXTERN, $rb_cv_ruby_extern)
 
 RUBY_APPEND_OPTION(XCFLAGS, -DRUBY_EXPORT)
 
@@ -2155,8 +2158,6 @@ AS_CASE("$enable_shared", [yes], [
 	LIBRUBY_DLDFLAGS="$LIBRUBY_DLDFLAGS "'-install_name '${libprefix}'/$(LIBRUBY_SO)'
 	LIBRUBY_DLDFLAGS="$LIBRUBY_DLDFLAGS "'-current_version $(MAJOR).$(MINOR).$(TEENY)'
 	LIBRUBY_DLDFLAGS="$LIBRUBY_DLDFLAGS "'-compatibility_version $(ruby_version)'
-	LIBRUBY_DLDFLAGS="$LIBRUBY_DLDFLAGS "'-Wl,-unexported_symbol,_Init_*'
-	LIBRUBY_DLDFLAGS="$LIBRUBY_DLDFLAGS "'-Wl,-unexported_symbol,*_threadptr_*'
 	LIBRUBY_DLDFLAGS="$LIBRUBY_DLDFLAGS "' $(XLDFLAGS)'
 	LIBRUBY_SO='lib$(RUBY_SO_NAME).dylib'
 	LIBRUBY_ALIASES='lib$(RUBY_BASE_NAME).$(MAJOR).$(MINOR).dylib lib$(RUBY_INSTALL_NAME).dylib'
