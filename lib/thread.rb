@@ -63,7 +63,7 @@ class Semaphore
     begin
       #if (@counter = [@counter+1,@max].min) <= 0
       if (@counter += 1) <= 0
-        t = @waiting.pop
+        t = @waiting.shift
         t.wakeup if t
       end
     rescue ThreadError
