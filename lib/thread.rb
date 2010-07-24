@@ -47,7 +47,7 @@ class Semaphore
     @mutex.lock
     if (@counter -= 1) < 0
       @waiting.push(Thread.current)
-      Thread.stop
+      @mutex.sleep
     end
   ensure
     @mutex.unlock
