@@ -3,12 +3,14 @@ require 'thread'
 
 class TestSemaphore < Test::Unit::TestCase
   def test_semaphore
-    producer_consumer(3, 5, Semaphore)
+    producer_consumer(3, 15, Semaphore)
   end
 
+=begin
   def test_thread_semaphore
     producer_consumer(3, 5, Thread::Semaphore)
   end
+=end
 
   def producer_consumer(buffer_size, data_count, klass, *args)
     fillcount  = klass.new(0)
@@ -23,7 +25,7 @@ class TestSemaphore < Test::Unit::TestCase
       while producer_data.size > 0
         emptycount.down
         mutex.synchronize do
-          pipe.push producer_data.pop
+          pipe.push producer_data.shift
           p [producer_data, pipe, consumer_data]
         end
         fillcount.up
@@ -34,7 +36,7 @@ class TestSemaphore < Test::Unit::TestCase
       while consumer_data.size < data_count
         fillcount.down
         mutex.synchronize do
-          consumer_data.push pipe.pop
+          consumer_data.push pipe.shift
           p [producer_data, pipe, consumer_data]
         end
         emptycount.up
