@@ -44,13 +44,12 @@ class Semaphore
   # Attempts to enter and waits if the semaphore is already full
   #
   def wait
-    @mutex.lock
-    if (@counter -= 1) < 0
-      @waiting.push(Thread.current)
-      @mutex.sleep
+    @mutex.synchronize do
+      if (@counter -= 1) < 0
+        @waiting.push Thread.current
+        @mutex.sleep
+      end
     end
-  ensure
-    @mutex.unlock
   end
 
   alias down wait
@@ -59,18 +58,17 @@ class Semaphore
   # Leaves and let another thread in, if there's any waiting
   #
   def signal
-    @mutex.lock
-    begin
-      #if (@counter = [@counter+1,@max].min) <= 0
-      if (@counter += 1) <= 0
-        t = @waiting.shift
-        t.wakeup if t
+    @mutex.synchronize do
+      begin
+        #if (@counter = [@counter+1,@max].min) <= 0
+        if (@counter += 1) <= 0
+          t = @waiting.shift
+          t.wakeup if t
+        end
+      rescue ThreadError
+        retry
       end
-    rescue ThreadError
-      retry
     end
-  ensure
-    @mutex.unlock
   end
 
   alias up signal
