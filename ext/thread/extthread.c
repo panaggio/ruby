@@ -699,7 +699,7 @@ rb_szqueue_num_waiting(VALUE self)
  *   TODO: Copy lib/thread.rb example to here
  */
 
-#define GetSempahorePtr(obj, tobj) \
+#define GetSemaphorePtr(obj, tobj) \
     TypedData_Get_Struct(obj, semaphore_t, &semaphore_data_type, tobj)
 
 typedef struct {
@@ -792,7 +792,7 @@ rb_semaphore_initialize(int argc, VALUE *argv, VALUE self)
     }
 
     semaphore_t *sem;
-    GetSempahorePtr(self, sem);
+    GetSemaphorePtr(self, sem);
 
     semaphore_initialize(sem, init_value, max_value);
 
@@ -843,10 +843,13 @@ rb_semaphore_wait(VALUE self)
     return sem_synchronize(get_semaphore_ptr(self), semaphore_do_wait, Qnil);
 }
 
+#define MIN(x,y) (x<y ? x : y)
+
 static VALUE
 semaphore_do_signal(semaphore_t *sem)
 {
-    if (MAX(++(sem->counter), sem->max) <= 0) {
+    sem->counter++;
+    if (MIN(sem->counter, sem->max) <= 0) {
         wakeup_first_thread(sem->waiting);
     }
     return Qnil;
@@ -905,7 +908,7 @@ rb_csemaphore_initialize(int argc, VALUE *argv, VALUE self)
     }
 
     semaphore_t *sem;
-    GetSempahorePtr(self, sem);
+    GetSemaphorePtr(self, sem);
 
     semaphore_initialize(sem, init_value, max_value);
 
