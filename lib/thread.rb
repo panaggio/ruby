@@ -33,7 +33,7 @@ class Semaphore
   #
   # Creates a new Semaphore
   #
-  def initialize(initvalue = 0, max = init_value)
+  def initialize(init_value = 0, max = init_value)
     @counter = initvalue
     @max = max
     @waiting = []
@@ -86,7 +86,7 @@ class CountingSemaphore < Semaphore
   #
   # Creates a new CountingSemaphore.
   #
-  def initialize(initvalue = 0, max = Infinity)
+  def initialize(init_value = 0, max = Infinity)
     super
   end
 end
