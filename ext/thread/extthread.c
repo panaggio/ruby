@@ -978,7 +978,6 @@ Init_extthread(void)
 
     rb_define_alloc_func(rb_cCoutingSemaphore, csemaphore_alloc);
     rb_define_method(rb_cCountingSemaphore, "initialize", csemaphore_initialize, -1);
-    rb_define_method(rb_cCountingSemaphore, "signal", rb_csemaphore_signal, 0);
 
     rb_provide("thread.rb");
     ALIAS_GLOBCAL_CONST(ConditionVariable);
