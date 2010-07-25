@@ -29,13 +29,13 @@ end
 #
 #   TODO: create a semaphore example
 #
-
 class Semaphore
   #
   # Creates a new Semaphore
   #
-  def initialize(initvalue = 0)
-    @counter = @max  = initvalue
+  def initialize(initvalue = 0, max = init_value)
+    @counter = initvalue
+    @max = max
     @waiting = []
     @mutex = Mutex.new
   end
@@ -60,8 +60,7 @@ class Semaphore
   def signal
     @mutex.synchronize do
       begin
-        #if (@counter = [@counter+1,@max].min) <= 0
-        if (@counter += 1) <= 0
+        if (@counter = [@counter+1,@max].min) <= 0
           t = @waiting.shift
           t.wakeup if t
         end
@@ -72,6 +71,24 @@ class Semaphore
   end
 
   alias up signal
+end
+
+#
+# TODO: Document CountingSemaphore
+#
+# Example:
+#
+#   require 'thread'
+#
+#   TODO: create a counting semaphore example
+#
+class CountingSemaphore < Semaphore
+  #
+  # Creates a new CountingSemaphore.
+  #
+  def initialize(initvalue = 0, max = Infinity)
+    super
+  end
 end
 
 #
