@@ -702,24 +702,34 @@ rb_szqueue_num_waiting(VALUE self)
 #define GetSempahorePtr(obj, tobj) \
     TypedData_Get_Struct(obj, semaphore_t, &semaphore_data_type, tobj)
 
-/* TODO: check if there's no need for a structure */
-#define semaphore_t rb_thread_semaphore_t
-
-#define semaphore_mark NULL
+typedef struct {
+    VALUE waiting;
+    VALUE mutex;
+    int max;
+    int counter;
+} semaphore_t
 
 static void
-semaphore_free(void *ptr)
+semaphore_mark(void *ptr)
 {
-   if (ptr) {
-       semaphore_t *sem = ptr;
-       native_sem_destroy(sem);
-   }
-   ruby_xfree(ptr);
+    semaphore_t *sem = ptr;
+    rb_gc_mark(sem->mutex);
+    rb_gc_mark(sem->waiting);
 }
+
+#define semaphore_free RUBY_TYPED_DEFAULT_FREE
+
 static size_t
 semaphore_memsize(const void *ptr)
 {
-    return ptr ? sizeof(semaphore_t) : 0;
+    size_t size = 0;
+    if (ptr) {
+        const semaphore_t *sem = ptr;
+        size = sizeof(semaphore);
+        size += rb_objspace_data_type_memsize(sem->mutex);
+        size += rb_ary_memsize(sem->waiting);
+    }
+    return size;
 }
 
 static const rb_data_type_t semaphore_data_type = {
@@ -727,16 +737,33 @@ static const rb_data_type_t semaphore_data_type = {
     {semaphore_mark, semaphore_free, semaphore_memsize,},
 };
 
+static semaphore_t *
+get_semaphore_ptr(VALUE self)
+{
+    semaphore_t *sem;
+    GetSemaphorePtr(self, sem);
+    if (!sem->mutex || !sem->waiting) {
+       rb_raise(rb_eArgError, "uninitialized Semaphore");
+    }
+    return sem;
+}
+
 static VALUE
 semaphore_alloc(VALUE klass)
 {
-    VALUE volatile obj;
     semaphore_t *sem;
-
-    obj = TypedData_Make_Struct(klass, semaphore_t, &semaphore_data_type, sem);
-    return obj;
+    return TypedData_Make_Struct(klass, semaphore_t, &semaphore_data_type, sem);
 }
-static VALUE semaphore_initialize1(VALUE self, unsigned int init_value);
+
+static void
+semaphore_initialize(semaphore_t *sem, int init_value, int max_value)
+{
+    sem->mutex = rb_mutex_new();
+    RBASIC(sem->mutex)->klass = 0;
+    sem->waiting = rb_ary_buf_new();
+    sem->max = max_value;
+    sem->counter = init_value;
+}
 
 /*
  *  call-seq:
@@ -745,36 +772,62 @@ static VALUE semaphore_initialize1(VALUE self, unsigned int init_value);
  *  Creates a new Semaphore
  */
 static VALUE
-semaphore_initialize(int argc, VALUE *argv, VALUE self)
+rb_semaphore_initialize(int argc, VALUE *argv, VALUE self)
 {
-    unsigned int init_value = 0;
+    int init_value = 0;
+    int max_value = 0;
     switch (argc) {
         case 0:
          break;
         case 1:
-         init_value = NUM2UINT(argv[0]);
+         max_value = init_value = NUM2INT(argv[0]);
+         break;
+        case 2:
+         init_value = NUM2INT(argv[0]);
+         max_value = NUM2INT(argv[1]);
          break;
         default:
-         rb_raise(rb_eArgError, "wrong number of arguments (%d for 1)", argc);
+         rb_raise(rb_eArgError, "wrong number of arguments (%d for 2)", argc);
     }
-    semaphore_initialize1(self, init_value);
-    return self;
-}
 
-static VALUE
-semaphore_initialize1(VALUE self, unsigned int init_value)
-{
     semaphore_t *sem;
     GetSempahorePtr(self, sem);
 
-    native_sem_initialize(sem, init_value);
+    semaphore_initialize(sem, init_value, max_value);
+
     return self;
 }
-VALUE
-rb_semaphore_new(unsigned int init_value)
+
+struct synchronize_sem_call_args {
+    semaphore_t *sem;
+    VALUE (*func)(semaphore_t *sem);
+};
+
+static VALUE
+sem_synchronize_call(VALUE args)
 {
-    VALUE sem = semaphore_alloc(rb_cSemaphore);
-    return semaphore_initialize1(sem, init_value);
+    struct synchronize_sem_call_args *p = (struct synchronize_sem_call_args *)args;
+    return (*p->func)(p->sem);
+}
+
+static VALUE
+sem_synchronize(semaphore_t *sem, VALUE (*func)(semaphore_t *sem, VALUE arg), VALUE arg)
+{
+    struct synchronize_sem_call_args args;
+    args.sem = sem;
+    args.func = func;
+    rb_mutex_lock(queue->mutex);
+    return rb_ensure(sem_synchronize_call, (VALUE)&args, rb_mutex_unlock, queue->mutex);
+}
+
+static VALUE
+semaphore_do_wait(semaphore *sem)
+{
+    if ((--sem->counter) < 0) {
+        rb_ary_push(sem->waiting, rb_thread_current());
+        rb_mutex_sleep(queue->mutex, Qnil);
+    }
+    return Qnil;
 }
 
 /*
@@ -783,13 +836,19 @@ rb_semaphore_new(unsigned int init_value)
  *
  * Attempts to enter and waits if the semaphore is already full
  */
-VALUE
+static VALUE
 rb_semaphore_wait(VALUE self)
 {
-    semaphore_t *sem;
-    GetSempahorePtr(self, sem);
-    native_sem_wait(sem);
-    return self;
+    return sem_synchronize(get_sem_ptr(self), semaphore_do_wait, Qnil);
+}
+
+static VALUE
+semaphore_do_signal(semaphore_t *sem)
+{
+    if (MAX(++(sem->counter), sem->max) <= 0) {
+        wakeup_first_thread(sem->waiting);
+    }
+    return Qnil;
 }
 
 /*
@@ -798,13 +857,10 @@ rb_semaphore_wait(VALUE self)
  *
  * Leaves and let another thread in, if there's any waiting
  */
-VALUE
+static VALUE
 rb_semaphore_signal(VALUE self)
 {
-    semaphore_t *sem;
-    GetSempahorePtr(self, sem);
-    native_sem_signal(sem);
-    return self;
+    return sem_synchronize(get_sem_ptr(self), semaphore_do_signal, Qnil);
 }
 
 #ifndef UNDER_THREAD
