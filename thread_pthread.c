@@ -23,11 +23,6 @@ static int native_mutex_trylock(pthread_mutex_t *lock);
 static void native_mutex_initialize(pthread_mutex_t *lock);
 static void native_mutex_destroy(pthread_mutex_t *lock);
 
-static void native_sem_signal(rb_thread_semaphore_t *sem);
-static void native_sem_wait(rb_thread_semaphore_t *sem);
-static void native_sem_initialize(rb_thread_semaphore_t *sem, unsigned int init_value);
-static void native_sem_destroy(rb_thread_semaphore_t *sem);
-
 static void native_cond_signal(pthread_cond_t *cond);
 static void native_cond_broadcast(pthread_cond_t *cond);
 static void native_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
@@ -89,46 +84,6 @@ native_mutex_destroy(pthread_mutex_t *lock)
 	rb_bug_errno("pthread_mutex_destroy", r);
     }
 }
-
-static void
-native_sem_signal(rb_thread_semaphore_t *sem)
-{
-    int r = sem_post(sem);
-    if (r) {
-        rb_bug_errno("pthread_semaphore_signal", r);
-    }
-}
-
-static void
-native_sem_wait(rb_thread_semaphore_t *sem)
-{
-    int r = sem_wait(sem);
-    if (r) {
-        rb_bug_errno("pthread_semaphore_wait", r);
-    }
-}
-
-static void
-native_sem_initialize(rb_thread_semaphore_t *sem, unsigned int init_value)
-{
-    /* TODO: see if this definition is really necessary
-     * TODO: get a better place for this definition */
-#define SEMAPHORE_IS_SHARED 1
-    int r =  sem_init(sem, SEMAPHORE_IS_SHARED, init_value); 
-    if (r) {
-        rb_bug_errno("pthread_semaphore_init", r);
-    }
-}
-
-static void
-native_sem_destroy(rb_thread_semaphore_t *sem)
-{
-    int r = sem_destroy(sem);
-    if (r) {
-        rb_bug_errno("pthread_semaphore_destroy", r);
-    }
-}
-
 
 static void
 native_cond_initialize(pthread_cond_t *cond)

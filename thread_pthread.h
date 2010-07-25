@@ -12,13 +12,11 @@
 #define RUBY_THREAD_PTHREAD_H
 
 #include <pthread.h>
-#include <semaphore.h>
 #ifdef HAVE_PTHREAD_NP_H
 #include <pthread_np.h>
 #endif
 typedef pthread_t rb_thread_id_t;
 typedef pthread_mutex_t rb_thread_lock_t;
-typedef sem_t rb_thread_semaphore_t;
 typedef pthread_cond_t rb_thread_cond_t;
 
 typedef struct native_thread_data_struct {
