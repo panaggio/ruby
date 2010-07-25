@@ -707,7 +707,7 @@ typedef struct {
     VALUE mutex;
     int max;
     int counter;
-} semaphore_t
+} semaphore_t;
 
 static void
 semaphore_mark(void *ptr)
@@ -725,7 +725,7 @@ semaphore_memsize(const void *ptr)
     size_t size = 0;
     if (ptr) {
         const semaphore_t *sem = ptr;
-        size = sizeof(semaphore);
+        size = sizeof(semaphore_t);
         size += rb_objspace_data_type_memsize(sem->mutex);
         size += rb_ary_memsize(sem->waiting);
     }
@@ -812,21 +812,21 @@ sem_synchronize_call(VALUE args)
 }
 
 static VALUE
-sem_synchronize(semaphore_t *sem, VALUE (*func)(semaphore_t *sem, VALUE arg), VALUE arg)
+sem_synchronize(semaphore_t *sem, VALUE (*func)(semaphore_t *sem), VALUE arg)
 {
     struct synchronize_sem_call_args args;
     args.sem = sem;
     args.func = func;
-    rb_mutex_lock(queue->mutex);
-    return rb_ensure(sem_synchronize_call, (VALUE)&args, rb_mutex_unlock, queue->mutex);
+    rb_mutex_lock(sem->mutex);
+    return rb_ensure(sem_synchronize_call, (VALUE)&args, rb_mutex_unlock, sem->mutex);
 }
 
 static VALUE
-semaphore_do_wait(semaphore *sem)
+semaphore_do_wait(semaphore_t *sem)
 {
     if ((--sem->counter) < 0) {
         rb_ary_push(sem->waiting, rb_thread_current());
-        rb_mutex_sleep(queue->mutex, Qnil);
+        rb_mutex_sleep(sem->mutex, Qnil);
     }
     return Qnil;
 }
@@ -840,7 +840,7 @@ semaphore_do_wait(semaphore *sem)
 static VALUE
 rb_semaphore_wait(VALUE self)
 {
-    return sem_synchronize(get_sem_ptr(self), semaphore_do_wait, Qnil);
+    return sem_synchronize(get_semaphore_ptr(self), semaphore_do_wait, Qnil);
 }
 
 static VALUE
@@ -861,7 +861,7 @@ semaphore_do_signal(semaphore_t *sem)
 static VALUE
 rb_semaphore_signal(VALUE self)
 {
-    return sem_synchronize(get_sem_ptr(self), semaphore_do_signal, Qnil);
+    return sem_synchronize(get_semaphore_ptr(self), semaphore_do_signal, Qnil);
 }
 
 /*
@@ -976,7 +976,7 @@ Init_extthread(void)
     rb_alias(rb_cSemaphore, rb_intern("down"), rb_intern("wait"));
     rb_alias(rb_cSemaphore, rb_intern("up"), rb_intern("signal"));
 
-    rb_define_alloc_func(rb_cCoutingSemaphore, semaphore_alloc);
+    rb_define_alloc_func(rb_cCountingSemaphore, semaphore_alloc);
     rb_define_method(rb_cCountingSemaphore, "initialize", rb_csemaphore_initialize, -1);
 
     rb_provide("thread.rb");
