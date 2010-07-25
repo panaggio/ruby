@@ -1,6 +1,9 @@
 require 'test/unit'
+require_relative 'envutil'
 
 class TestFloat < Test::Unit::TestCase
+  include EnvUtil
+
   def test_float
     assert_equal(2, 2.6.floor)
     assert_equal(-3, (-2.6).floor)
@@ -239,6 +242,20 @@ class TestFloat < Test::Unit::TestCase
     assert_equal(-1, (Float::MAX.to_i*2) <=> inf)
     assert_equal(1, (-Float::MAX.to_i*2) <=> -inf)
 
+    bug3609 = '[ruby-core:31470]'
+    def (pinf = Object.new).infinite?; +1 end
+    def (ninf = Object.new).infinite?; -1 end
+    def (fin = Object.new).infinite?; nil end
+    nonum = Object.new
+    assert_equal(0, inf <=> pinf, bug3609)
+    assert_equal(1, inf <=> fin, bug3609)
+    assert_equal(1, inf <=> ninf, bug3609)
+    assert_nil(inf <=> nonum, bug3609)
+    assert_equal(-1, -inf <=> pinf, bug3609)
+    assert_equal(-1, -inf <=> fin, bug3609)
+    assert_equal(0, -inf <=> ninf, bug3609)
+    assert_nil(-inf <=> nonum, bug3609)
+
     assert_raise(ArgumentError) { 1.0 > nil }
     assert_raise(ArgumentError) { 1.0 >= nil }
     assert_raise(ArgumentError) { 1.0 < nil }
@@ -426,10 +443,10 @@ class TestFloat < Test::Unit::TestCase
   def test_Float
     assert_in_delta(0.125, Float("0.1_2_5"), 0.00001)
     assert_in_delta(0.125, "0.1_2_5__".to_f, 0.00001)
-    assert_equal(1, Float(([1] * 10000).join).infinite?)
+    assert_equal(1, suppress_warning {Float(([1] * 10000).join)}.infinite?)
     assert(!Float(([1] * 10000).join("_")).infinite?) # is it really OK?
     assert_raise(ArgumentError) { Float("1.0\x001") }
-    assert_equal(1, Float("1e10_00").infinite?)
+    assert_equal(1, suppress_warning {Float("1e10_00")}.infinite?)
     assert_raise(TypeError) { Float(nil) }
     o = Object.new
     def o.to_f; inf = Float::INFINITY; inf/inf; end
