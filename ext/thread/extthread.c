@@ -778,6 +778,7 @@ rb_semaphore_initialize(int argc, VALUE *argv, VALUE self)
     int max_value = 0;
     switch (argc) {
         case 0:
+         max_value = init_value = 0;
          break;
         case 1:
          max_value = init_value = NUM2INT(argv[0]);
@@ -861,6 +862,54 @@ static VALUE
 rb_semaphore_signal(VALUE self)
 {
     return sem_synchronize(get_sem_ptr(self), semaphore_do_signal, Qnil);
+}
+
+/*
+ * Document-class: CountingSemaphore
+ *
+ * TODO: Copy lib/thread.rb documentation to here
+ *
+ * Example:
+ *
+ *   require 'thread'
+ *
+ *   TODO: Copy lib/thread.rb example to here
+ */
+
+/*
+ *  call-seq:
+ *     Semaphore.new   -> semaphore
+ *
+ *  Creates a new Semaphore
+ */
+static VALUE
+rb_semaphore_initialize(int argc, VALUE *argv, VALUE self)
+{
+    int init_value = 0;
+    int max_value = 0;
+    switch (argc) {
+        case 0:
+         init_value = 0;
+         max_value = INT_MAX;
+         break;
+        case 1:
+         init_value = NUM2INT(argv[0]);
+         max_value = INT_MAX;
+         break;
+        case 2:
+         init_value = NUM2INT(argv[0]);
+         max_value = NUM2INT(argv[1]);
+         break;
+        default:
+         rb_raise(rb_eArgError, "wrong number of arguments (%d for 2)", argc);
+    }
+
+    semaphore_t *sem;
+    GetSempahorePtr(self, sem);
+
+    semaphore_initialize(sem, init_value, max_value);
+
+    return self;
 }
 
 #ifndef UNDER_THREAD
