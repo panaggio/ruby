@@ -883,7 +883,7 @@ rb_semaphore_signal(VALUE self)
  *  Creates a new Semaphore
  */
 static VALUE
-rb_semaphore_initialize(int argc, VALUE *argv, VALUE self)
+rb_csemaphore_initialize(int argc, VALUE *argv, VALUE self)
 {
     int init_value = 0;
     int max_value = 0;
@@ -970,14 +970,14 @@ Init_extthread(void)
     rb_alias(rb_cSizedQueue, rb_intern("shift"), rb_intern("pop"));
 
     rb_define_alloc_func(rb_cSemaphore, semaphore_alloc);
-    rb_define_method(rb_cSemaphore, "initialize", semaphore_initialize, -1);
+    rb_define_method(rb_cSemaphore, "initialize", rb_semaphore_initialize, -1);
     rb_define_method(rb_cSemaphore, "wait", rb_semaphore_wait, 0);
     rb_define_method(rb_cSemaphore, "signal", rb_semaphore_signal, 0);
     rb_alias(rb_cSemaphore, rb_intern("down"), rb_intern("wait"));
     rb_alias(rb_cSemaphore, rb_intern("up"), rb_intern("signal"));
 
-    rb_define_alloc_func(rb_cCoutingSemaphore, csemaphore_alloc);
-    rb_define_method(rb_cCountingSemaphore, "initialize", csemaphore_initialize, -1);
+    rb_define_alloc_func(rb_cCoutingSemaphore, semaphore_alloc);
+    rb_define_method(rb_cCountingSemaphore, "initialize", rb_csemaphore_initialize, -1);
 
     rb_provide("thread.rb");
     ALIAS_GLOBCAL_CONST(ConditionVariable);
