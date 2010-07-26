@@ -86,7 +86,7 @@ class CountingSemaphore < Semaphore
   #
   # Creates a new CountingSemaphore.
   #
-  def initialize(init_value = 0, max = 1/0.0)
+  def initialize(init_value = 0, max = Float::INFINITY)
     super
   end
 end
