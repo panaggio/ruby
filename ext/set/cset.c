@@ -124,6 +124,7 @@ rb_set_initialize(int argc, VALUE *argv, VALUE klass)
 }
 
 /*
+* TODO: correct this documentation
 * Creates a new set containing the given objects.
 */
 static VALUE
@@ -137,6 +138,8 @@ void
 Init_cset(void)
 {
     rb_cSet  = rb_define_class("CSet", rb_cObject);
+
+    /* TODO: add self.[] */
 
     rb_define_alloc_func(rb_cSet, set_alloc);
     rb_define_method(rb_cSet, "initialize", rb_set_initialize, 0);
