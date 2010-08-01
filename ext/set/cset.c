@@ -1,7 +1,5 @@
 #include <ruby.h>
 
-RUBY_EXTERN size_t rb_ary_memsize(VALUE);
-
 VALUE rb_cSet;
 
 /*
@@ -43,7 +41,8 @@ set_memsize(const void *ptr)
     if (ptr) {
         const Set *set = ptr;
         size = sizeof(Set);
-        size += rb_hash_memsize(set->hash);
+        /* TODO: check a way to calculate hash memsize */
+        /* size += rb_hash_memsize(set->hash); */
     }
     return size;
 }
