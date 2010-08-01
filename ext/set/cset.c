@@ -129,9 +129,7 @@ rb_set_initialize(int argc, VALUE *argv, VALUE klass)
 static VALUE
 rb_set_s_create(int argc, VALUE *argv, VALUE klass)
 {
-/* FIXME
-    return set;
- */
+    return rb_set_initialize(argc, argv, klass);
 }
 
 
