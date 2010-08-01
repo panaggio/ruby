@@ -1,5 +1,7 @@
 #include <ruby.h>
 
+RUBY_EXTERN size_t rb_ary_memsize(VALUE);
+
 VALUE rb_cSet;
 
 /*
@@ -12,26 +14,29 @@ VALUE rb_cSet;
  *    TODO: copy set example from lib/set.rb
  */
 
-/* TODO: create Set struct */
 typedef struct {
+    VALUE hash;
 } Set;
 
-/* TODO: implement */
 static void
 set_mark(void *ptr)
 {
+    Set *set = ptr;
+    rb_gc_mark(set->hash);
 }
 
-/* TODO: implement */
-static void
-set_free(void *ptr)
-{
-}
+#define set_free RUBY_TYPED_DEFAULT_FREE
 
-/* TODO: implement */
 static void
 set_memsize(const void *ptr)
 {
+    size_t size = 0;
+    if (ptr) {
+        const Set *set = ptr;
+        size = sizeof(Set);
+        size += rb_hash_memsize(set->hash);
+    }
+    return size;
 }
 
 static const rb_data_type_t set_data_type = {
@@ -47,7 +52,7 @@ get_set_ptr(VALUE self)
 {
     Set *set;
     GetSetPtr(self, set);
-    if (/* TODO */) {
+    if (!set->hash) {
        rb_raise(rb_eArgError, "uninitialized Set");
     }
     return set;
@@ -64,6 +69,30 @@ set_alloc(VALUE klass)
 static void
 set_initialize(Set *set)
 {
+    set->hash = rb_hash_new();
+}
+
+static VALUE
+rb_set_initialize0(VALUE self)
+{
+    Set *set;
+    GetSetPtr(self, set);
+
+    set_initialize(set);
+
+    return self;
+}
+
+static
+do_with_enum()
+{
+    rb_intern(const char *name)
+    if (rb_respond_to(self, rb_intern("each_entry")))
+        /*FIXME: enum.each_entry(&block)*/
+    else if (rb_respond_to(self, rb_intern("each")))
+        /*FIXME: enum.each_entry(&block)*/
+    else
+        rb_raise(rb_eArgError, "value must be enumerable");
 }
 
 /*
@@ -72,16 +101,41 @@ set_initialize(Set *set)
  *
  * Creates a new set.
  */
-
 static VALUE
-rb_set_initialize(VALUE self)
+rb_set_initialize(int argc, VALUE *argv, VALUE self)
 {
     Set *set;
     GetSetPtr(self, set);
 
-    set_initialize(set);
-
+    switch (argc) {
+      case 0:
+       set->hash = rb_hash_new();
+       break;
+      case 1:
+       /* FIXME:
+       if (block?)
+           do_with_enum(enum) { |o| add(block[o]) }
+       else
+           merge(enum)
+       end
+       */
+       break;
+      default:
+       rb_raise(rb_eArgError, "wrong number of arguments (%d for 1)", argc);
+    }
     return self;
+}
+
+/*
+* Creates a new set containing the given objects.
+*/
+
+static VALUE
+rb_set_s_create(int argc, VALUE *argv, VALUE klass)
+{
+/* FIXME
+    return set;
+ */
 }
 
 
