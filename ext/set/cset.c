@@ -34,7 +34,7 @@ set_mark(void *ptr)
 
 #define set_free RUBY_TYPED_DEFAULT_FREE
 
-static void
+static size_t
 set_memsize(const void *ptr)
 {
     size_t size = 0;
@@ -91,14 +91,23 @@ rb_set_initialize0(VALUE self)
     return self;
 }
 
-static
-do_with_enum()
+/*
+ * Document-method: do_with_enum
+ * call-seq: do_with_enum(enum, &block)
+ *
+ * Iterates over enum and add each of it's elements (after yielded to block)
+ * to the set.
+ */
+static void
+do_with_enum(VALUE self, VALUE a_enum)
 {
-    rb_intern(const char *name)
+    //rb_intern(const char *name)
     if (rb_respond_to(self, rb_intern("each_entry")))
-        /*FIXME: enum.each_entry(&block)*/
+        /*FIXME*/
+        rb_eval_string("enum.each_entry(&block)");
     else if (rb_respond_to(self, rb_intern("each")))
-        /*FIXME: enum.each_entry(&block)*/
+        /*FIXME*/
+        rb_eval_string("enum.each_entry(&block)");
     else
         rb_raise(rb_eArgError, "value must be enumerable");
 }
@@ -110,34 +119,31 @@ do_with_enum()
  * Creates a new set.
  */
 static VALUE
-rb_set_initialize(int argc, VALUE *argv, VALUE self)
+rb_set_initialize(int argc, VALUE *argv, VALUE klass)
 {
     Set *set;
+    /* TODO: check if this allocation is necessary */
+    VALUE self;// = set_alloc(klass);
     GetSetPtr(self, set);
 
-    switch (argc) {
-      case 0:
-       set->hash = rb_hash_new();
-       break;
-      case 1:
-       /* FIXME:
-       if (block?)
-           do_with_enum(enum) { |o| add(block[o]) }
-       else
-           merge(enum)
-       end
-       */
-       break;
-      default:
+    if (argc == 0 || argc == 1)
+        set->hash = rb_hash_new();
+    else
        rb_raise(rb_eArgError, "wrong number of arguments (%d for 1)", argc);
-    }
+
+    if (argc == 0) return self;
+
+    if (rb_block_given_p())
+        rb_set_do_with_enum(self, argv[0]);
+    else
+        rb_set_merge(self, argv[0]);
+
     return self;
 }
 
 /*
 * Creates a new set containing the given objects.
 */
-
 static VALUE
 rb_set_s_create(int argc, VALUE *argv, VALUE klass)
 {
@@ -150,6 +156,8 @@ rb_set_s_create(int argc, VALUE *argv, VALUE klass)
 void
 Init_cset(void)
 {
+    rb_cSet  = rb_define_class("CSet", rb_cObject);
+
     rb_define_alloc_func(rb_cSet, set_alloc);
     rb_define_method(rb_cSet, "initialize", rb_set_initialize, 0);
 
