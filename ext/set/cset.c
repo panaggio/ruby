@@ -7,11 +7,20 @@ VALUE rb_cSet;
 /*
  *  Document-class: Set
  *
- *  TODO: copy set description from lib/set.rb
+ *  Set implements a collection of unordered values with no duplicates.
+ *  This is a hybrid of Array's intuitive inter-operation facilities and
+ *  Hash's fast lookup.
  *
  *  Example:
  *
- *    TODO: copy set example from lib/set.rb
+ *    require 'set'
+ *    s1 = Set.new [1, 2]                   # -> #<Set: {1, 2}>
+ *    s2 = [1, 2].to_set                    # -> #<Set: {1, 2}>
+ *    s1 == s2                              # -> true
+ *    s1.add("foo")                         # -> #<Set: {1, 2, "foo"}>
+ *    s1.merge([2, 6])                      # -> #<Set: {6, 1, 2, "foo"}>
+ *    s1.subset? s2                         # -> false
+ *    s2.subset? s1                         # -> true
  */
 
 typedef struct {
