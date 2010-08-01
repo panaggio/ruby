@@ -512,11 +512,7 @@ rb_iseq_translate_threaded_code(rb_iseq_t *iseq)
 {
 #if OPT_DIRECT_THREADED_CODE || OPT_CALL_THREADED_CODE
     extern const void **rb_vm_get_insns_address_table(void);
-#if OPT_DIRECT_THREADED_CODE
     const void * const *table = rb_vm_get_insns_address_table();
-#else
-    const void * const *table = rb_vm_get_insns_address_table();
-#endif
     unsigned long i;
 
     iseq->iseq_encoded = ALLOC_N(VALUE, iseq->iseq_size);
@@ -5341,7 +5337,7 @@ iseq_build_body(rb_iseq_t *iseq, LINK_ANCHOR *anchor,
 #define CHECK_ARRAY(v)   rb_convert_type(v, T_ARRAY, "Array", "to_ary")
 #define CHECK_STRING(v)  rb_convert_type(v, T_STRING, "String", "to_str")
 #define CHECK_SYMBOL(v)  rb_convert_type(v, T_SYMBOL, "Symbol", "to_sym")
-static inline VALUE CHECK_INTEGER(VALUE v) {NUM2LONG(v); return v;}
+static inline VALUE CHECK_INTEGER(VALUE v) {(void)NUM2LONG(v); return v;}
 
 VALUE
 rb_iseq_build_from_ary(rb_iseq_t *iseq, VALUE locals, VALUE args,

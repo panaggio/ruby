@@ -272,7 +272,7 @@ if test "$GCC" = yes; then
     linker_flag=-Wl,
     : ${optflags=-O3}
     AS_CASE(["$target_os"], [linux*|darwin*], [: ${debugflags=-ggdb}])
-    RUBY_APPEND_OPTIONS(XCFLAGS, ["-include ruby/missing.h"])
+    RUBY_APPEND_OPTIONS(XCFLAGS, ["-include ruby/config.h" "-include ruby/missing.h"])
 else
     linker_flag=
 fi
@@ -1155,7 +1155,10 @@ main()
 	rb_cv_broken_glibc_ia64_erfc=no)])
 AS_CASE([$rb_cv_broken_glibc_ia64_erfc],[yes],[ac_cv_func_erf=no])
 
-AS_CASE(["$target_os"],[freebsd],[],[AC_REPLACE_FUNCS(close)])
+AS_CASE(["$target_os"],[freebsd*],[
+	 AC_DEFINE(BROKEN_CLOSE)
+	 AC_REPLACE_FUNCS(close)
+	 ])
 AC_REPLACE_FUNCS(dup2 memmove strerror\
 		 strchr strstr crypt flock\
 		 isnan finite isinf hypot acosh erf tgamma lgamma_r cbrt \
@@ -2624,7 +2627,13 @@ AC_SUBST(MANTYPE)
 arch_hdrdir="${EXTOUT}/include/${arch}/ruby"
 AS_MKDIR_P("${arch_hdrdir}")
 config_h="${arch_hdrdir}/config.h"
-tr -d '\015' < confdefs.h | grep -v "^#define PACKAGE_" |
+guard=INCLUDE_RUBY_CONFIG_H
+{
+  echo "#ifndef $guard"
+  echo "#define $guard 1"
+  grep -v "^#define PACKAGE_" confdefs.h
+  echo "#endif /* $guard */"
+} | tr -d '\015' |
 ${srcdir}/tool/ifchange "${config_h}" -
 tr -d '\015' < largefile.h > confdefs.h
 rm largefile.h

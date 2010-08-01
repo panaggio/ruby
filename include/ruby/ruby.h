@@ -21,11 +21,9 @@ extern "C" {
 #endif
 #endif
 
-#ifndef RUBY_LIB_PREFIX
 #include "ruby/config.h"
 #ifdef RUBY_EXTCONF_H
 #include RUBY_EXTCONF_H
-#endif
 #endif
 
 #define NORETURN_STYLE_NEW 1
@@ -1440,7 +1438,7 @@ int ruby_vsnprintf(char *str, size_t n, char const *fmt, va_list ap);
 #define snprintf ruby_snprintf
 #define vsnprintf ruby_vsnprintf
 
-#ifdef __FreeBSD__
+#ifdef BROKEN_CLOSE
 #undef getpeername
 #define getpeername ruby_getpeername
 #undef getsockname

@@ -42,8 +42,8 @@
 #include <sys/mman.h>
 #include <ucontext.h>
 #endif
-#define PAGE_SIZE (pagesize)
-#define PAGE_MASK (~(PAGE_SIZE - 1))
+#define RB_PAGE_SIZE (pagesize)
+#define RB_PAGE_MASK (~(RB_PAGE_SIZE - 1))
 static long pagesize;
 #define FIBER_MACHINE_STACK_ALLOCATION_SIZE  (0x10000 / sizeof(VALUE))
 #endif
@@ -498,7 +498,7 @@ fiber_set_stack_location(void)
     VALUE *ptr;
 
     SET_MACHINE_STACK_END(&ptr);
-    th->machine_stack_start = (void*)(((VALUE)ptr & PAGE_MASK) + STACK_UPPER(&ptr, 0, PAGE_SIZE));
+    th->machine_stack_start = (void*)(((VALUE)ptr & RB_PAGE_MASK) + STACK_UPPER(&ptr, 0, RB_PAGE_SIZE));
 }
 
 static VOID CALLBACK
@@ -531,8 +531,8 @@ fiber_machine_stack_alloc(size_t size)
 	if (ptr == (VALUE*)(SIGNED_VALUE)-1) {
 	    rb_raise(rb_eFiberError, "can't alloc machine stack to fiber");
 	}
-	if (mprotect(ptr + STACK_DIR_UPPER((size - PAGE_SIZE) / sizeof(VALUE), 0),
-		     PAGE_SIZE, PROT_READ | PROT_WRITE) < 0) {
+	if (mprotect(ptr + STACK_DIR_UPPER((size - RB_PAGE_SIZE) / sizeof(VALUE), 0),
+		     RB_PAGE_SIZE, PROT_READ | PROT_WRITE) < 0) {
 	    rb_raise(rb_eFiberError, "mprotect failed");
 	}
     }
@@ -564,7 +564,7 @@ fiber_initialize_machine_stack_context(rb_fiber_t *fib, size_t size)
     getcontext(context);
     ptr = fiber_machine_stack_alloc(size);
     context->uc_link = NULL;
-    context->uc_stack.ss_sp = ptr;
+    context->uc_stack.ss_sp = (char *)ptr;
     context->uc_stack.ss_size = size;
     makecontext(context, rb_fiber_start, 0);
     sth->machine_stack_start = ptr + STACK_DIR_UPPER(0, size / sizeof(VALUE));

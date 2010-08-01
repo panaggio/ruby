@@ -2851,21 +2851,34 @@ file_expand_path(VALUE fname, VALUE dname, int abs_mode, VALUE result)
     tainted = OBJ_TAINTED(fname);
 
     if (s[0] == '~' && abs_mode == 0) {      /* execute only if NOT absolute_path() */
+	long userlen = 0;
 	tainted = 1;
 	if (isdirsep(s[1]) || s[1] == '\0') {
 	    buf = 0;
+	    b = 0;
 	    rb_str_set_len(result, 0);
 	    if (*++s) ++s;
 	}
 	else {
 	    s = nextdirsep(b = s);
-	    BUFCHECK(bdiff + (s-b) >= buflen);
-	    memcpy(p, b, s-b);
-	    rb_str_set_len(result, s-b);
+	    userlen = s - b;
+	    BUFCHECK(bdiff + userlen >= buflen);
+	    memcpy(p, b, userlen);
+	    rb_str_set_len(result, userlen);
 	    buf = p + 1;
-	    p += s-b;
+	    p += userlen;
 	}
-	rb_home_dir(buf, result);
+	if (NIL_P(rb_home_dir(buf, result))) {
+	    rb_raise(rb_eArgError, "can't find user %s", buf);
+	}
+	if (!rb_is_absolute_path(RSTRING_PTR(result))) {
+	    if (userlen) {
+		rb_raise(rb_eArgError, "non-absolute home of %.*s", (int)userlen, b);
+	    }
+	    else {
+		rb_raise(rb_eArgError, "non-absolute home");
+	    }
+	}
 	BUFINIT();
 	p = pend;
     }
@@ -3119,7 +3132,7 @@ file_expand_path(VALUE fname, VALUE dname, int abs_mode, VALUE result)
 
 #define check_expand_path_args(fname, dname) \
     ((fname = rb_get_path(fname)), \
-     (NIL_P(dname) ? dname : (dname = rb_get_path(dname))))
+     (void)(NIL_P(dname) ? dname : (dname = rb_get_path(dname))))
 
 static VALUE
 file_expand_path_1(VALUE fname)
@@ -3398,15 +3411,12 @@ rb_file_s_realdirpath(int argc, VALUE *argv, VALUE klass)
 }
 
 static size_t
-rmext(const char *p, long l1, const char *e)
+rmext(const char *p, long l0, long l1, const char *e)
 {
-    long l0, l2;
+    long l2;
 
     if (!e) return 0;
 
-    for (l0 = 0; l0 < l1; ++l0) {
-	if (p[l0] != '.') break;
-    }
     l2 = strlen(e);
     if (l2 == 2 && e[1] == '*') {
 	unsigned char c = *e;
@@ -3527,7 +3537,7 @@ rb_file_s_basename(int argc, VALUE *argv)
 
     p = ruby_find_basename(name, &f, &n);
     if (n >= 0) {
-	if (NIL_P(fext) || !(f = rmext(p, n, StringValueCStr(fext)))) {
+	if (NIL_P(fext) || !(f = rmext(p, f, n, StringValueCStr(fext)))) {
 	    f = n;
 	}
 	if (f == RSTRING_LEN(fname)) return rb_str_new_shared(fname);

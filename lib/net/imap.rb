@@ -2001,9 +2001,9 @@ module Net
 
       BEG_REGEXP = /\G(?:\
 (?# 1:  SPACE   )( +)|\
-(?# 2:  NIL     )(NIL)(?=[\x80-\xff(){ \x00-\x1f\x7f%*"\\\[\]+])|\
-(?# 3:  NUMBER  )(\d+)(?=[\x80-\xff(){ \x00-\x1f\x7f%*"\\\[\]+])|\
-(?# 4:  ATOM    )([^\x80-\xff(){ \x00-\x1f\x7f%*"\\\[\]+]+)|\
+(?# 2:  NIL     )(NIL)(?=[\x80-\xff(){ \x00-\x1f\x7f%*#{'"'}\\\[\]+])|\
+(?# 3:  NUMBER  )(\d+)(?=[\x80-\xff(){ \x00-\x1f\x7f%*#{'"'}\\\[\]+])|\
+(?# 4:  ATOM    )([^\x80-\xff(){ \x00-\x1f\x7f%*#{'"'}\\\[\]+]+)|\
 (?# 5:  QUOTED  )"((?:[^\x00\r\n"\\]|\\["\\])*)"|\
 (?# 6:  LPAR    )(\()|\
 (?# 7:  RPAR    )(\))|\
@@ -3471,27 +3471,44 @@ if __FILE__ == $0
   $user = ENV["USER"] || ENV["LOGNAME"]
   $auth = "login"
   $ssl = false
+  $starttls = false
 
   def usage
-    $stderr.print <<EOF
+    <<EOF
 usage: #{$0} [options] <host>
 
   --help                        print this message
   --port=PORT                   specifies port
   --user=USER                   specifies user
   --auth=AUTH                   specifies auth type
+  --starttls                    use starttls
   --ssl                         use ssl
 EOF
   end
 
+  begin
+    require 'io/console'
+  rescue LoadError
+    def _noecho(&block)
+      system("stty", "-echo")
+      begin
+        yield STDIN
+      ensure
+        system("stty", "echo")
+      end
+    end
+  else
+    def _noecho(&block)
+      STDIN.noecho(&block)
+    end
+  end
+
   def get_password
     print "password: "
-    system("stty", "-echo")
     begin
-      return gets.chop
+      return _noecho(&:gets).chomp
     ensure
-      system("stty", "echo")
-      print "\n"
+      puts
     end
   end
 
@@ -3510,6 +3527,7 @@ EOF
                      ['--port', GetoptLong::REQUIRED_ARGUMENT],
                      ['--user', GetoptLong::REQUIRED_ARGUMENT],
                      ['--auth', GetoptLong::REQUIRED_ARGUMENT],
+                     ['--starttls', GetoptLong::NO_ARGUMENT],
                      ['--ssl', GetoptLong::NO_ARGUMENT])
   begin
     parser.each_option do |name, arg|
@@ -3522,27 +3540,30 @@ EOF
         $auth = arg
       when "--ssl"
         $ssl = true
+      when "--starttls"
+        $starttls = true
       when "--debug"
         Net::IMAP.debug = true
       when "--help"
         usage
-        exit(1)
+        exit
       end
     end
   rescue
-    usage
-    exit(1)
+    abort usage
   end
 
   $host = ARGV.shift
   unless $host
-    usage
-    exit(1)
+    abort usage
   end
 
   imap = Net::IMAP.new($host, :port => $port, :ssl => $ssl)
   begin
-    password = get_password
+    imap.starttls if $starttls
+    class << password = method(:get_password)
+      alias to_str call
+    end
     imap.authenticate($auth, $user, password)
     while true
       cmd, *args = get_command

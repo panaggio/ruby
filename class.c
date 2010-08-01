@@ -659,7 +659,8 @@ rb_include_module(VALUE klass, VALUE module)
 	    }
 	}
 	c = RCLASS_SUPER(c) = include_class_new(module, RCLASS_SUPER(c));
-	changed = 1;
+	if (RMODULE_M_TBL(module) && RMODULE_M_TBL(module)->num_entries)
+	    changed = 1;
       skip:
 	module = RCLASS_SUPER(module);
     }
@@ -1274,7 +1275,7 @@ rb_singleton_class(VALUE obj)
     VALUE klass = singleton_class_of(obj);
 
     /* ensures an exposed class belongs to its own eigenclass */
-    if (TYPE(obj) == T_CLASS) ENSURE_EIGENCLASS(klass);
+    if (TYPE(obj) == T_CLASS) (void)ENSURE_EIGENCLASS(klass);
 
     return klass;
 }

@@ -19,6 +19,12 @@ extern "C" {
 #endif
 
 #include "ruby/config.h"
+#if defined(HAVE_STDDEF_H)
+#  include <stddef.h>
+#endif
+#ifdef RUBY_EXTCONF_H
+#include RUBY_EXTCONF_H
+#endif
 
 #if defined(HAVE_SYS_TIME_H)
 #  include <sys/time.h>
@@ -47,6 +53,9 @@ struct timezone {
 };
 #endif
 
+#ifdef RUBY_EXPORT
+#undef RUBY_EXTERN
+#endif
 #ifndef RUBY_EXTERN
 #define RUBY_EXTERN extern
 #endif
@@ -175,7 +184,7 @@ RUBY_EXTERN int signbit(double x);
 RUBY_EXTERN int ffs(int);
 #endif
 
-#ifndef HAVE_CLOSE
+#ifdef BROKEN_CLOSE
 #include <sys/types.h>
 #include <sys/socket.h>
 RUBY_EXTERN int ruby_getpeername(int, struct sockaddr *, socklen_t *);
