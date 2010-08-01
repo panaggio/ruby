@@ -73,24 +73,6 @@ set_alloc(VALUE klass)
     return TypedData_Make_Struct(klass, Set, &set_data_type, set);
 }
 
-/*TODO: implement*/
-static void
-set_initialize(Set *set)
-{
-    set->hash = rb_hash_new();
-}
-
-static VALUE
-rb_set_initialize0(VALUE self)
-{
-    Set *set;
-    GetSetPtr(self, set);
-
-    set_initialize(set);
-
-    return self;
-}
-
 /*
  * Document-method: do_with_enum
  * call-seq: do_with_enum(enum, &block)
