@@ -133,6 +133,151 @@ rb_set_s_create(int argc, VALUE *argv, VALUE klass)
     return rb_set_initialize(argc, argv, klass);
 }
 
+static void
+hash_replace(VALUE hash_dest, VALUE hash_orig)
+{
+    /* TODO: check how to call dup on orig internal hash */
+    hash_dest = hash_orig;
+}
+
+/*
+ * Document-method: initialize_copy
+ * call-seq: initialize_copy(orig)
+ *
+ * Copy internal hash.
+ */
+static VALUE
+rb_set_initialize_copy(VALUE self, VALUE orig)
+{
+    Set *set = get_set_ptr(self);
+    Set *origset = get_set_ptr(orig);
+    hash_replace(set->hash,origset->hash);
+    return self;
+}
+
+/*
+ * Document-method: freeze
+ * call-seq: freeze
+ *
+ * Freezes the set.
+ */
+static VALUE
+rb_set_freeze(VALUE self)
+{
+    Set *set = get_set_ptr(self);
+    /* TODO: call super */
+    OBJ_FREEZE(set->hash);
+    return self;
+}
+
+/*
+ * Document-method: taint
+ * call-seq: taint
+ *
+ * Taints the set.
+ */
+static VALUE
+rb_set_taint(VALUE self)
+{
+    Set *set = get_set_ptr(self);
+    /* TODO: call super */
+    OBJ_TAINT(set->hash);
+    return self;
+}
+
+/*
+ * Document-method: untaint
+ * call-seq: untaint
+ *
+ * Untaints the set.
+ */
+static VALUE
+rb_set_untaint(VALUE self)
+{
+    Set *set = get_set_ptr(self);
+    /* TODO: call super */
+    OBJ_UNSET(set->hash,FL_TAINT);
+    return self;
+}
+
+/*
+ * Document-method: size
+ * call-seq: size
+ *
+ * Returns the number of elements.
+ */
+static VALUE
+rb_set_size(VALUE self)
+{
+    Set *set = get_set_ptr(self);
+    if (!RHASH(set->hash)->ntbl)
+        return INT2FIX(0);
+    return INT2FIX(RHASH(set->hash)->ntbl->num_entries);
+}
+
+/*
+ * Document-method: empty?
+ * call-seq: empty?
+ *
+ * Returns the number of elements.
+ */
+static VALUE
+rb_set_empty_p(VALUE self)
+{
+    Set *set = get_set_ptr(self);
+    return RHASH_EMPTY_P(set->hash) ? Qtrue : Qfalse;
+}
+
+/*
+ * Document-method: clear
+ * call-seq: clear
+ *
+ * Removes all elements and returns self.
+ */
+static VALUE
+rb_set_clear(VALUE self)
+{
+    Set *set = get_set_ptr(self);
+    /* TODO: try to unstaticfy rb_hash_clear from hash.c */
+}
+
+/*
+ * Document-method: replace
+ * call-seq: replace(enum)
+ *
+ * Replaces the contents of the set with the contents of the given
+ * enumerable object and returns self.
+ */
+static VALUE
+rb_set_replace(VALUE self, VALUE a_enum)
+{
+    Set *set = get_set_ptr(self);
+    if (rb_class_of(self) == rb_class_of(a_enum))
+        enum_replace(set->hash, a_enum);
+    else {
+        rb_set_clear(self);
+        rb_set_merge(self,a_enum);
+    }
+
+    return self;
+}
+
+/*
+ * Document-method: to_a
+ * call-seq: to_a
+ *
+ * Converts the set to an array.  The order of elements is uncertain.
+ */
+static VALUE
+rb_set_to_a(VALUE self)
+{
+    Set *set = get_set_ptr(self);
+    VALUE ary = rb_ary_new();
+    rb_hash_foreach(hash, to_a_i, ary);
+    OBJ_INFECT(ary, hash);
+
+    return ary;
+}
 
 void
 Init_cset(void)
