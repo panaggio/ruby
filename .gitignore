@@ -357,6 +357,10 @@
 /ext/sdbm/mkmf.log
 /ext/sdbm/sdbm.a
 
+# /ext/set/
+/ext/set/Makefile
+/ext/set/extconf.h
+
 # /ext/socket/
 /ext/socket/*.def
 /ext/socket/Makefile
