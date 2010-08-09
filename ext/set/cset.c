@@ -252,7 +252,8 @@ static VALUE
 rb_set_clear(VALUE self)
 {
     Set *set = get_set_ptr(self);
-    /* TODO: try to unstaticfy rb_hash_clear from hash.c */
+    /* FIXME: find a better way to implement this */
+    rb_funcall(set->hash, rb_intern(":clear"), 0);
 }
 
 /*
