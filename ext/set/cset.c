@@ -326,6 +326,23 @@ set_flatten_merge(VALUE self, VALUE orig, VALUE seen)
     return self;
 }
 
+static VALUE
+rb_set_flatten_merge(int argc, VALUE *argv, VALUE self)
+{
+    VALUE orig, seen;
+
+    if (argc == 1)
+        seen = set_new(rb_cSet);
+    else if (argc == 2)
+        seen = argv[1];
+    else
+        rb_raise(rb_eArgError, "wrong number of arguments (%d for 2)", argc);
+
+    orig = argv[0];
+
+    return set_flatten_merge(self, orig, seen);
+}
+
 /*
  * Document-method: flatten
  * call-seq: flatten
@@ -339,7 +356,7 @@ rb_set_flatten(VALUE self)
     VALUE orig = set_new(/* FIXME self.class */);
     VALUE seen = set_new(/* FIXME self.class */);
 
-    return flatten_merge(self, orig, seen);
+    return rb_set_flatten_merge(self, orig, seen);
 }
 
 /*
@@ -970,6 +987,49 @@ Init_cset(void)
 
     rb_define_alloc_func(rb_cSet, set_alloc);
     rb_define_method(rb_cSet, "initialize", rb_set_initialize, 0);
+    rb_define_private_method(rb_cSet, "do_with_enum", rb_set_do_with_enum, 1);
+    rb_define_method(rb_cSet, "initialize_copy", rb_set_initialize_copy, 1);
+    rb_define_method(rb_cSet, "freeze", rb_set_freeze, 0);
+    rb_define_method(rb_cSet, "taint", rb_set_taint, 0);
+    rb_define_method(rb_cSet, "untaint", rb_set_untaint, 0);
+    rb_define_method(rb_cSet, "size", rb_set_size, 0);
+    rb_define_method(rb_cSet, "empty?", rb_set_empty_p, 0);
+    rb_define_method(rb_cSet, "clear", rb_set_clear, 0);
+    rb_define_method(rb_cSet, "replace", rb_set_replace, 1);
+    rb_define_method(rb_cSet, "to_a", rb_set_to_a, 0);
+    rb_define_protected_method(rb_cSet, "flatten_merge", rb_set_flatten_merge, -1);
+    rb_define_method(rb_cSet, "flatten", rb_set_flatten, 0);
+    rb_define_method(rb_cSet, "flatten!", rb_set_flatten_bang, 0);
+    rb_define_method(rb_cSet, "include?", rb_set_include_p, 1);
+    rb_define_method(rb_cSet, "superset?", rb_set_superset_bang, 1);
+    rb_define_method(rb_cSet, "proper_superset?", rb_set_proper_superset_bang, 1);
+    rb_define_method(rb_cSet, "subset?", rb_set_subset_bang, 1);
+    rb_define_method(rb_cSet, "proper_subset?", rb_set_proper_subset_bang, 1);
+    rb_define_method(rb_cSet, "each", rb_set_each, 0);
+    rb_define_method(rb_cSet, "add", rb_set_add, 1);
+    rb_define_method(rb_cSet, "add?", rb_set_add_bang, 1);
+    rb_define_method(rb_cSet, "delete", rb_set_delete, 1);
+    rb_define_method(rb_cSet, "delete?", rb_set_delete_bang, 1);
+    rb_define_method(rb_cSet, "delete_if", rb_set_delete_if, 0);
+    rb_define_method(rb_cSet, "keep_if", rb_set_keep_if, 0);
+    rb_define_method(rb_cSet, "collect!", rb_set_collect_bang, 0);
+    rb_define_method(rb_cSet, "reject!", rb_set_reject_bang, 0);
+    rb_define_method(rb_cSet, "select!", rb_set_select_bang, 0);
+    rb_define_method(rb_cSet, "merge", rb_set_merge, 1);
+    rb_define_method(rb_cSet, "subtract", rb_set_subtract, 1);
+    rb_define_method(rb_cSet, "|", rb_set_union, 1);
+    rb_define_method(rb_cSet, "-", rb_set_difference, 1);
+    rb_define_method(rb_cSet, "&", rb_set_intersection, 1);
+    rb_define_method(rb_cSet, "^", rb_set_exclusice, 1);
+    rb_define_method(rb_cSet, "==", rb_set_equal, 1);
+    rb_define_method(rb_cSet, "hash", rb_set_hash, 0);
+    rb_define_method(rb_cSet, "eql?", rb_set_eql_p, 1);
+    rb_define_method(rb_cSet, "classify", rb_set_, 0);
+    rb_define_method(rb_cSet, "divide", rb_set_divide, 0);
+    rb_define_method(rb_cSet, "inspect", rb_set_inspect, 0);
+    rb_define_method(rb_cSet, "pretty_print", rb_set_pretty_print, 1);
+    rb_define_method(rb_cSet, "pretty_print_cycle", rb_set_pretty_print_cycle, 1);
+    
 
     rb_provide("set.rb");
 }
