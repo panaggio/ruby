@@ -352,8 +352,10 @@ rb_set_flatten_merge(int argc, VALUE *argv, VALUE self)
 static VALUE
 rb_set_flatten(VALUE self)
 {
-    VALUE orig = set_new(/* FIXME self.class */);
-    VALUE seen = set_new(/* FIXME self.class */);
+    /* TODO: check if there's not better way of checking classes */
+    VALUE klass = rb_class_of(self);
+    VALUE orig = set_new(klass);
+    VALUE seen = set_new(klass);
 
     return rb_set_flatten_merge(self, orig, seen);
 }
@@ -670,7 +672,8 @@ rb_set_collect_bang(VALUE self)
 {
     set_no_block_given();
 
-    VALUE new = set_new(/* FIXME self.class */);
+    /* TODO: check if there's not better way of checking classes */
+    VALUE new = set_new(rb_class_of(self));
     Set *new_set = get_set_ptr(new);
     Set *self_set = get_set_ptr(self);
 
@@ -806,7 +809,8 @@ rb_set_subtract(VALUE self, VALUE a_enum)
 static VALUE
 set_dup(VALUE set)
 {
-    VALUE new = set_new(/* FIXME self.class */);
+    /* TODO: check if there's not better way of checking classes */
+    VALUE new = set_new(rb_class_f(self));
     Set *new_set  = get_set_ptr(new);
     Set *orig_set = get_set_ptr(set);
     set_replace(new_set, self_set);
@@ -859,7 +863,8 @@ rb_set_difference(VALUE self, VALUE a_enum)
 static VALUE
 rb_set_intersction(VALUE self, VALUE a_enum)
 {
-    VALUE new = set_new(/* FIXME self.class */);
+    /* TODO: check if there's not better way of checking classes */
+    VALUE new = set_new(rb_class_of(self));
     /* TODO: rb_set_do_with_enum(enum) { |o| add(o) if include?(o)} */
     return new;
 }
@@ -875,7 +880,8 @@ rb_set_intersction(VALUE self, VALUE a_enum)
 static VALUE
 rb_set_exclusive(VALUE self, VALUE a_enum)
 {
-    VALUE new = set_new(/* FIXME self.class */);
+    /* TODO: check if there's not better way of checking classes */
+    VALUE new = set_new(rb_class_of(self));
     /* TODO: rb_set_each(self)
              { |o| if n.include?(o) then n.delete(o) else n.add(o) end } */
     return new;
@@ -941,7 +947,8 @@ rb_set_classify(VALUE self)
     set_classify_i(VALUE key, VALUE value)
     {
         VALUE x = rb_yield(key);
-        VALUE new = set_new(/* FIXME self.class */);
+        /* TODO: check if there's not better way of checking classes */
+        VALUE new = set_new(rb_class_of(self));
         Set *new_set;
         if (rb_hash_lookup2(hash, x, Qnil) == Qnil) {
             rb_hash_aset(hash, x, new);
