@@ -145,9 +145,9 @@ rb_set_s_create(int argc, VALUE *argv, VALUE klass)
 }
 
 static void
-hash_replace(VALUE hash_dest, VALUE hash_orig)
+set_replace(Set *dest, Set *orig)
 {
-    hash_dest = rb_hash_dup(hash_orig);
+    dest->hash = rb_hash_dup(orig->hash);
 }
 
 /*
@@ -161,7 +161,7 @@ rb_set_initialize_copy(VALUE self, VALUE orig)
 {
     Set *set = get_set_ptr(self);
     Set *origset = get_set_ptr(orig);
-    hash_replace(set->hash,origset->hash);
+    set_replace(set, origset);
     return self;
 }
 
@@ -270,7 +270,7 @@ rb_set_replace(VALUE self, VALUE a_enum)
     Set *set = get_set_ptr(self);
     /* TODO: check if there's not better way of checking classes */
     if (rb_class_of(self) == rb_class_of(a_enum))
-        hash_replace(set->hash, a_enum->hash);
+        set_replace(set, a_enum);
     else {
         rb_set_clear(self);
         rb_set_merge(self,a_enum);
@@ -408,7 +408,7 @@ static VALUE
 rb_set_superset_p(VALUE self, VALUE other)
 {
     /* TODO: See if it's needed to check other type.
-     *       I think set_set_ptr does the job */
+     *       I think get_set_ptr does the job */
     Set *self_set = get_set_ptr(self);
     Set *other_set = get_set_ptr(other);
 
@@ -428,7 +428,7 @@ static VALUE
 rb_set_proper_superset_p(VALUE self, VALUE other)
 {
     /* TODO: See if it's needed to check other type.
-     *       I think set_set_ptr does the job */
+     *       I think get_set_ptr does the job */
     Set *self_set = get_set_ptr(self);
     Set *other_set = get_set_ptr(other);
 
@@ -448,7 +448,7 @@ static VALUE
 rb_set_proper_superset_p(VALUE self, VALUE other)
 {
     /* TODO: See if it's needed to check other type.
-     *       I think set_set_ptr does the job */
+     *       I think get_set_ptr does the job */
     Set *self_set = get_set_ptr(self);
     Set *other_set = get_set_ptr(other);
 
@@ -468,7 +468,7 @@ static VALUE
 rb_set_proper_superset_p(VALUE self, VALUE other)
 {
     /* TODO: See if it's needed to check other type.
-     *       I think set_set_ptr does the job */
+     *       I think get_set_ptr does the job */
     Set *self_set = get_set_ptr(self);
     Set *other_set = get_set_ptr(other);
 
@@ -660,7 +660,9 @@ rb_set_collect_bang(VALUE self)
 
     rb_hash_foreach(self->hash, set_collect_bang_i, new_set);
 
-    return hash_replace(self_set->hash, new_set->hash);
+    set_replace(self_set, new_set);
+
+    return self;
 }
 
 /*
@@ -699,6 +701,12 @@ rb_set_select_bang(VALUE self)
     return set_size(set) == n ? Qnil : self;
 }
 
+static void
+set_merge(Set *self, Set *other_set)
+{
+    a_enum_set = get_set_ptr(a_enum);
+    set_replace(set, a_enum);
+}
 
 /*
  * Document-method: merge
@@ -714,14 +722,19 @@ rb_set_merge(VALUE self, VALUE a_enum)
     Set *a_enum_set;
     /* TODO: check if there's not a better way of checking classes */
     if (rb_class_of(self) == rb_class_of(a_enum)){
-        a_enum_set = get_set_ptr(a_enum);
-        hash_replace(set->hash, a_enum->hash);
+        set_merge(set, a_enum_set);
     }
     else {
         /* TODO: rb_set_do_with_enum(enum) { |o| add(o) } */
     }
 
     return self;
+}
+
+static void
+set_subtract(Set *self, Set *other_set)
+{
+    /*TODO: implement*/
 }
 
 /*
@@ -739,6 +752,17 @@ rb_set_subtract(VALUE self, VALUE a_enum)
     return self;
 }
 
+static VALUE
+set_dup(VALUE set)
+{
+    VALUE new = set_new(/* FIXME self.class */);
+    Set *new_set  = get_set_ptr(new);
+    Set *orig_set = get_set_ptr(set);
+    set_replace(new_set, self_set);
+
+    return new;
+}
+
 /*
  * Document-method: |
  * call-seq: |(enum)
@@ -749,24 +773,193 @@ rb_set_subtract(VALUE self, VALUE a_enum)
 static VALUE
 rb_set_union(VALUE self, VALUE a_enum)
 {
-    VALUE new;
-    Set *self_set = get_set_ptr(self);
+    VALUE new = set_dup(self);
     Set *enum_set = get_set_ptr(a_enum);
-    /* TODO: implement hash_merge */
-    hash_merge();
+    set_merge(new_set, enum_set);
+
+    return new;
 }
 
 /*
- * Document-method: 
- * call-seq: 
+ * Document-method: -
+ * call-seq: -(enum)
  *
- * 
+ * Returns a new set built by duplicating the set, removing every
+ * element that appears in the given enumerable object.
  */
 static VALUE
-rb_set_(VALUE self, )
+rb_set_difference(VALUE self, VALUE a_enum)
 {
+    VALUE new = set_dup(self);
+    Set *new_set  = get_set_ptr(new);
+    Set *enum_set = get_set_ptr(a_enum);
+    set_subtract(new_set, enum_set);
+
+    return new;
 }
 
+/*
+ * Document-method: & 
+ * call-seq: &(enum)
+ *
+ * Returns a new set containing elements common to the set and the
+ * given enumerable object.
+ */
+static VALUE
+rb_set_intersction(VALUE self, VALUE a_enum)
+{
+    VALUE new = set_new(/* FIXME self.class */);
+    /* TODO: rb_set_do_with_enum(enum) { |o| add(o) if include?(o)} */
+    return new;
+}
+
+/*
+ * Document-method: ^
+ * call-seq: ^(enum)
+ *
+ * Returns a new set containing elements exclusive between the set
+ * and the given enumerable object.  (set ^ enum) is equivalent to
+ * ((set | enum) - (set & enum)).
+ */
+static VALUE
+rb_set_exclusive(VALUE self, VALUE a_enum)
+{
+    VALUE new = set_new(/* FIXME self.class */);
+    /* TODO: rb_set_each(self)
+             { |o| if n.include?(o) then n.delete(o) else n.add(o) end } */
+    return new;
+}
+
+
+/*
+ * Document-method: ==
+ * call-seq: ==(other)
+ *
+ * Returns true if two sets are equal.  The equality of each couple
+ * of elements is defined according to Object#eql?.
+ */
+static VALUE
+rb_set_equal(VALUE self, VALUE other)
+{
+    /* TODO: implement */
+}
+
+static VALUE
+rb_set_hash(VALUE self)
+{
+    Set *set = get_set_ptr(self);
+    return set->hash;
+}
+
+static VALUE
+rb_set_eql(VALUE self, VALUE other)
+{
+    Set *self_set = get_set_ptr(self);
+    Set *other_set = get_set_ptr(other);
+    if (rb_class_of(other) != rb_cSet)
+        return Qfalse;
+    /* TODO: implement hash_eql*/
+    return hash_eql(self_set->hash, other_set->hash);
+}
+
+/*
+ * Document-method: classify
+ * call-seq: classify(&block)
+ *
+ * Classifies the set by the return value of the given block and
+ * returns a hash of {value => set of elements} pairs.  The block is
+ * called once for each element of the set, passing the element as
+ * parameter.
+ *
+ * e.g.:
+ *
+ *   require 'set'
+ *   files = Set.new(Dir.glob("*.rb"))
+ *   hash = files.classify { |f| File.mtime(f).year }
+ *   p hash    # => {2000=>#<Set: {"a.rb", "b.rb"}>,
+ *             #     2001=>#<Set: {"c.rb", "d.rb", "e.rb"}>,
+ *             #     2002=>#<Set: {"f.rb"}>}
+ */
+static VALUE
+rb_set_classify(VALUE self)
+{
+    Set *set = get_set_ptr(self);
+    VALUE hash = rb_hash_new();
+
+    static VALUE
+    set_classify_i(VALUE key, VALUE value)
+    {
+        VALUE x = rb_yield(key);
+        VALUE new = set_new(/* FIXME self.class */);
+        Set *new_set;
+        if (rb_hash_lookup2(hash, x, Qnil) == Qnil) {
+            rb_hash_aset(hash, x, new);
+            new_set = get_set_ptr(new);
+            set_add(new, key);
+        }
+        return ST_CONTINUE;
+    }
+
+    set_no_block_given();
+
+    rb_hash_foreach(self->hash, set_classify_i, 0);
+
+    return hash;
+}
+
+/*
+ * Document-method: divide
+ * call-seq: divide(&block)
+ *
+ * Divides the set into a set of subsets according to the commonality
+ * defined by the given block.
+ *
+ * If the arity of the block is 2, elements o1 and o2 are in common
+ * if block.call(o1, o2) is true.  Otherwise, elements o1 and o2 are
+ * in common if block.call(o1) == block.call(o2).
+ *
+ * e.g.:
+ *
+ *   require 'set'
+ *   numbers = Set[1, 3, 4, 6, 9, 10, 11]
+ *   set = numbers.divide { |i,j| (i - j).abs == 1 }
+ *   p set     # => #<Set: {#<Set: {1}>,
+ *             #            #<Set: {11, 9, 10}>,
+ *             #            #<Set: {3, 4}>,
+ *             #            #<Set: {6}>}>
+ */
+static VALUE
+rb_set_divide(VALUE self)
+{   
+    /* TODO: implement */
+}
+
+#define InspectKey rb_intern(":__inspect_key__")
+
+/*
+ * Document-method: inspect
+ * call-seq: inspect
+ *
+ * Returns a string containing a human-readable representation of the
+ * set. ("#<Set: {element1, element2, ...}>")
+ */
+static VALUE
+rb_set_inspect(VALUE self)
+{   
+    /* TODO: implement */
+}
+
+static VALUE
+rb_set_pretty_print(VALUE self, VALUE pp)
+{   
+    /* TODO: implement */
+}
+
+static VALUE
+rb_set_pretty_print_cycle(VALUE self, VALUE pp)
+{   
+    /* TODO: implement */
+}
 
 void
 Init_cset(void)
