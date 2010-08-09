@@ -213,9 +213,7 @@ rb_set_untaint(VALUE self)
 static VALUE
 set_size(Set *set)
 {
-    if (!RHASH(set->hash)->ntbl)
-        return INT2FIX(0);
-    return INT2FIX(RHASH(set->hash)->ntbl->num_entries);
+    return RHASH_SIZE(set->hash);
 }
 
 /*
