@@ -380,6 +380,24 @@ rb_set_flatten(VALUE self)
     return rb_set_flatten_merge(self, orig, seen);
 }
 
+static VALUE
+set_detect_i(VALUE key, VALUE value, VALUE *return_val)
+{
+    if (rb_obj_kind_of(key, rb_cSet) != Qtrue)
+        return ST_CONTINUE;
+    *return_val = key;
+    return ST_STOP;
+}
+
+static VALUE
+set_detect(VALUE self)
+{
+    VALUE return_val = Qnil;
+    Set *set = get_set_ptr(self);
+    rb_hash_foreach(self->hash, set_detect_i, &return_val);
+    return return_val;
+}
+
 /*
  * Document-method: flatten!
  * call-seq: flatten!
@@ -390,9 +408,8 @@ rb_set_flatten(VALUE self)
 static VALUE
 rb_set_flatten_bang(VALUE self)
 {
-    if (/* FIXME detect { |e| rb_obj_kind_of(e, rb_cSet) } */)
+    if (set_detect(self) != Qnil)
         return rb_set_replace(self, rb_set_flatten);
-
     return Qnil;
 }
 
