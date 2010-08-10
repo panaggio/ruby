@@ -245,6 +245,22 @@ rb_set_empty_p(VALUE self)
     return RHASH_EMPTY_P(set->hash) ? Qtrue : Qfalse;
 }
 
+static VALUE
+hash_clear(VALUE hash)
+{
+    rb_hash_modify_check(hash);
+    if (!RHASH(hash)->ntbl)
+        return hash;
+    if (RHASH(hash)->ntbl->num_entries > 0) {
+        if (RHASH(hash)->iter_lev > 0)
+            rb_hash_foreach(hash, clear_i, 0);
+        else
+            st_clear(RHASH(hash)->ntbl);
+    }
+
+    return hash;
+}
+
 /*
  * Document-method: clear
  * call-seq: clear
@@ -255,8 +271,9 @@ static VALUE
 rb_set_clear(VALUE self)
 {
     Set *set = get_set_ptr(self);
-    /* FIXME: find a better way to implement this */
-    rb_funcall(set->hash, rb_intern(":clear"), 0);
+    /* TODO find a better way of running Hash#clear than copying code */
+    hash_clear(set->hash);
+    return self;
 }
 
 /*
