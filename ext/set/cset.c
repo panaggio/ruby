@@ -308,7 +308,7 @@ set_flatten_merge(VALUE self, VALUE orig, VALUE seen)
     static VALUE
     set_flatten_merge_i(VALUE e, VALUE value)
     {
-        if (/*FIXME key.is_a?(Set)*/) {
+        if (rb_obj_kind_of(e, rb_cSet)) {
             VALUE e_id = 0; /* FIXME = e.object_id*/
             if (rb_set_include_p(seen, e_id))
                 rb_raise(rb_eArgumentError, "tried to flatten recursive Set");
@@ -371,7 +371,7 @@ rb_set_flatten(VALUE self)
 static VALUE
 rb_set_flatten_bang(VALUE self)
 {
-    if (/* FIXME detect { |e| e.is_a?(Set) } */)
+    if (/* FIXME detect { |e| rb_obj_kind_of(e, rb_cSet) } */)
         return rb_set_replace(self, rb_set_flatten);
 
     return Qnil;
