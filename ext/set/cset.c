@@ -309,7 +309,7 @@ set_flatten_merge(VALUE self, VALUE orig, VALUE seen)
     set_flatten_merge_i(VALUE e, VALUE value)
     {
         if (rb_obj_kind_of(e, rb_cSet)) {
-            VALUE e_id = 0; /* FIXME = e.object_id*/
+            VALUE e_id = rb_obj_id(e);
             if (rb_set_include_p(seen, e_id))
                 rb_raise(rb_eArgumentError, "tried to flatten recursive Set");
 
