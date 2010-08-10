@@ -500,10 +500,10 @@ rb_set_proper_superset_p(VALUE self, VALUE other)
 }
 
 static VALUE
-set_no_block_given()
+set_no_block_given(VALUE self, VALUE method)
 {
     if (!rb_block_given_p())
-        return; /* TODO: enum_for(__method__) */
+        return rb_enumeratorize(self, method, 0, 0);
 }
 
 static VALUE
@@ -524,7 +524,7 @@ rb_set_each_i(VALUE key, VALUE value)
 static VALUE
 rb_set_each(VALUE self)
 {
-    set_no_block_given();
+    set_no_block_given(self, rb_intern(":each"));
 
     rb_hash_foreach(self->hash, rb_set_each_i, 0);
     return self;
@@ -624,7 +624,7 @@ set_delete_if_i(VALUE o, VALUE value, Set *set)
 static VALUE
 rb_set_delete_if(VALUE self)
 {
-    set_no_block_given();
+    set_no_block_given(self, rb_intern(":delete_if"));
 
     Set *set = get_set_ptr(self);
     rb_hash_foreach(self->hash, set_delete_if_i, set);
@@ -650,7 +650,7 @@ set_keep_if_i(VALUE o, VALUE value, Set *set)
 static VALUE
 rb_set_keep_if(VALUE self)
 {
-    set_no_block_given();
+    set_no_block_given(self, rb_intern(":keep_if"));
 
     Set *set = get_set_ptr(self);
     rb_hash_foreach(self->hash, set_keep_if_i, set);
@@ -673,7 +673,7 @@ set_collect_bang_i(VALUE key, VALUE value, Set *set)
 static VALUE
 rb_set_collect_bang(VALUE self)
 {
-    set_no_block_given();
+    set_no_block_given(self, rb_intern(":collect!"));
 
     /* TODO: check if there's not better way of checking classes */
     VALUE new = set_new(rb_class_of(self));
@@ -697,7 +697,7 @@ rb_set_collect_bang(VALUE self)
 static VALUE
 rb_set_reject_bang(VALUE self)
 {
-    set_no_block_given();
+    set_no_block_given(self, rb_intern(":reject!"));
 
     Set *set = get_set_ptr(self);
     int n = set_size(set);
@@ -715,7 +715,7 @@ rb_set_reject_bang(VALUE self)
 static VALUE
 rb_set_select_bang(VALUE self)
 {
-    set_no_block_given();
+    set_no_block_given(self, rb_intern(":select!"));
 
     Set *set = get_set_ptr(self);
     int n = set_size(set);
@@ -961,7 +961,7 @@ rb_set_classify(VALUE self)
         return ST_CONTINUE;
     }
 
-    set_no_block_given();
+    set_no_block_given(self, rb_intern(":classify"));
 
     rb_hash_foreach(self->hash, set_classify_i, 0);
 
