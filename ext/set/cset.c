@@ -175,7 +175,8 @@ static VALUE
 rb_set_freeze(VALUE self)
 {
     Set *set = get_set_ptr(self);
-    /* TODO: call super */
+    /* FIXME: check if super was called correctly */
+    rb_call_super(1, &self);
     OBJ_FREEZE(set->hash);
     return self;
 }
@@ -190,7 +191,8 @@ static VALUE
 rb_set_taint(VALUE self)
 {
     Set *set = get_set_ptr(self);
-    /* TODO: call super */
+    /* FIXME: check if super was called correctly */
+    rb_call_super(1, &self);
     OBJ_TAINT(set->hash);
     return self;
 }
@@ -205,7 +207,8 @@ static VALUE
 rb_set_untaint(VALUE self)
 {
     Set *set = get_set_ptr(self);
-    /* TODO: call super */
+    /* FIXME: check if super was called correctly */
+    rb_call_super(1, &self);
     OBJ_UNSET(set->hash,FL_TAINT);
     return self;
 }
