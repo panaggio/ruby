@@ -175,7 +175,8 @@ static VALUE
 rb_set_freeze(VALUE self)
 {
     Set *set = get_set_ptr(self);
-    /* TODO: call super */
+    /* FIXME: check if super was called correctly */
+    rb_call_super(1, &self);
     OBJ_FREEZE(set->hash);
     return self;
 }
@@ -190,7 +191,8 @@ static VALUE
 rb_set_taint(VALUE self)
 {
     Set *set = get_set_ptr(self);
-    /* TODO: call super */
+    /* FIXME: check if super was called correctly */
+    rb_call_super(1, &self);
     OBJ_TAINT(set->hash);
     return self;
 }
@@ -205,7 +207,8 @@ static VALUE
 rb_set_untaint(VALUE self)
 {
     Set *set = get_set_ptr(self);
-    /* TODO: call super */
+    /* FIXME: check if super was called correctly */
+    rb_call_super(1, &self);
     OBJ_UNSET(set->hash,FL_TAINT);
     return self;
 }
@@ -305,8 +308,8 @@ set_flatten_merge(VALUE self, VALUE orig, VALUE seen)
     static VALUE
     set_flatten_merge_i(VALUE e, VALUE value)
     {
-        if (/*FIXME key.is_a?(Set)*/) {
-            VALUE e_id = 0; /* FIXME = e.object_id*/
+        if (rb_obj_kind_of(e, rb_cSet)) {
+            VALUE e_id = rb_obj_id(e);
             if (rb_set_include_p(seen, e_id))
                 rb_raise(rb_eArgumentError, "tried to flatten recursive Set");
 
@@ -370,7 +373,7 @@ rb_set_flatten(VALUE self)
 static VALUE
 rb_set_flatten_bang(VALUE self)
 {
-    if (/* FIXME detect { |e| e.is_a?(Set) } */)
+    if (/* FIXME detect { |e| rb_obj_kind_of(e, rb_cSet) } */)
         return rb_set_replace(self, rb_set_flatten);
 
     return Qnil;
