@@ -83,13 +83,14 @@ set_alloc(VALUE klass)
 static void
 rb_set_do_with_enum(VALUE self, VALUE a_enum)
 {
-    //rb_intern(const char *name)
-    if (rb_respond_to(self, rb_intern("each_entry")))
-        /*FIXME*/
-        rb_eval_string("enum.each_entry(&block)");
+    if (TYPE(a_enum) == T_ARRAY)
+        rb_ary_each(a_enum);
+    else if (TYPE(a_enum) == T_HASH)
+        rb_hash_foreach(a_enum, rb_yield, 0);
+    else if (rb_respond_to(self, rb_intern("each_entry")))
+        rb_funcall(a_enum, rb_intern("each_entry"), 0);
     else if (rb_respond_to(self, rb_intern("each")))
-        /*FIXME*/
-        rb_eval_string("enum.each_entry(&block)");
+        rb_funcall(a_enum, rb_intern("each"), 0);
     else
         rb_raise(rb_eArgError, "value must be enumerable");
 }
@@ -1061,10 +1062,9 @@ Init_cset(void)
 {
     rb_cSet  = rb_define_class("CSet", rb_cObject);
 
-    /* TODO: add self.[] */
-
     rb_define_alloc_func(rb_cSet, set_alloc);
     rb_define_method(rb_cSet, "initialize", rb_set_initialize, 0);
+    rb_define_singleton_method(rb_cSet, "[]", rb_set_s_create, -1);
     rb_define_private_method(rb_cSet, "do_with_enum", rb_set_do_with_enum, 1);
     rb_define_method(rb_cSet, "initialize_copy", rb_set_initialize_copy, 1);
     rb_define_method(rb_cSet, "freeze", rb_set_freeze, 0);
