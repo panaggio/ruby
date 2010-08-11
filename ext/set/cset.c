@@ -136,9 +136,11 @@ rb_set_initialize(int argc, VALUE *argv, VALUE klass)
 }
 
 /*
-* TODO: correct this documentation
-* Creates a new set containing the given objects.
-*/
+ * Document-method: self.[]
+ * call-seq: self.[]
+ *
+ * Creates a new set containing the given objects.
+ */
 static VALUE
 rb_set_s_create(int argc, VALUE *argv, VALUE klass)
 {
