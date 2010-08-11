@@ -73,6 +73,28 @@ set_alloc(VALUE klass)
     return TypedData_Make_Struct(klass, Set, &set_data_type, set);
 }
 
+static void
+set_do_with_array(Set *set, void (*func)(ANYARGS), Set *o_set, VALUE arr)
+{
+    int i;
+
+    for (i=0; i<RARRAY_LEN(arr); i++)
+        func(RARRAY_PTR(arr)[i], set, o_set);
+}
+
+static void
+set_do_with_hash(Set *set, void (*func)(ANYARGS), Set *o_set, VALUE hash)
+{
+    static VALUE
+    set_do_with_hash_i(VALUE key, VALUE val)
+    {
+        func(e, set, o_set);
+        return ST_CONTINUE;
+    }
+
+    rb_hash_foreach(hash, set_do_with_hash_i, 0);
+}
+
 /*
  * Document-method: do_with_enum
  * call-seq: do_with_enum(enum, &block)
@@ -799,6 +821,12 @@ set_merge(Set *self, Set *other_set)
     hash_update(self->hash, other_set->hash);
 }
 
+static void
+set_merge_i(VALUE e, Set *set, Set *o_set)
+{
+    set_add(set, e);
+}
+
 /*
  * Document-method: merge
  * call-seq: merge(enum)
@@ -813,8 +841,13 @@ rb_set_merge(VALUE self, VALUE a_enum)
     Set *a_enum_set;
     /* TODO: check if there's not a better way of checking classes */
     if (rb_class_of(self) == rb_class_of(a_enum)){
+        a_enum_set = get_set_ptr(a_enum);
         set_merge(set, a_enum_set);
     }
+    else if (TYPE(a_enum) == T_ARRAY)
+        set_do_with_array(set, rb_set_merge_i, 0, a_enum);
+    else if (TYPE(a_enum) == T_HASH)
+        set_do_with_hash(set, rb_set_merge_i, 0, a_enum);
     else {
         /* TODO: rb_set_do_with_enum(enum) { |o| add(o) } */
     }
