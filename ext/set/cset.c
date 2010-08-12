@@ -74,12 +74,23 @@ set_alloc(VALUE klass)
 }
 
 static void
-set_do_with_array(Set *set, void (*func)(ANYARGS), Set *o_set, VALUE arr)
+set_do_with_enum(Set *set, void (*func)(ANYARGS), Set *o_set, VALUE a_enum)
 {
     int i;
 
-    for (i=0; i<RARRAY_LEN(arr); i++)
-        func(RARRAY_PTR(arr)[i], set, o_set);
+    if (TYPE(a_enum) == T_ARRAY)
+        for (i=0; i<RARRAY_LEN(arr); i++)
+            func(RARRAY_PTR(arr)[i], set, o_set);
+    else {
+        VALUE proc = rb_proc_new(func, 0);
+        /* TODO: create a way to pass the Proc as a block to rb_funcall */
+        if (rb_respond_to(self, rb_intern("each_entry")))
+            rb_funcall(a_enum, rb_intern("each_entry"), 0);
+        else if (rb_respond_to(self, rb_intern("each")))
+            rb_funcall(a_enum, rb_intern("each"), 0);
+        else
+            rb_raise(rb_eArgError, "value must be enumerable");
+    }
 }
 
 /*
@@ -829,11 +840,8 @@ rb_set_merge(VALUE self, VALUE a_enum)
         a_enum_set = get_set_ptr(a_enum);
         set_merge(set, a_enum_set);
     }
-    else if (TYPE(a_enum) == T_ARRAY)
-        set_do_with_array(set, rb_set_merge_i, 0, a_enum);
-    else {
-        /* TODO: rb_set_do_with_enum(enum) { |o| add(o) } */
-    }
+    else
+        set_do_with_enum(set, rb_set_merge_i, 0, a_enum);
 
     return self;
 }
