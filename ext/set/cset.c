@@ -1008,10 +1008,11 @@ rb_set_eql(VALUE self, VALUE other)
 {
     Set *self_set = get_set_ptr(self);
     Set *other_set = get_set_ptr(other);
+
     if (rb_class_of(other) != rb_cSet)
         return Qfalse;
-    /* TODO: implement hash_eql*/
-    return hash_eql(self_set->hash, other_set->hash);
+    /* TODO: Find a better way to call Hash#eql? */
+    return rb_funcall(self_set->hash, rb_intern("eql?"), 1, other_set->hash);
 }
 
 /*
