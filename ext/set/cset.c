@@ -1111,8 +1111,9 @@ rb_set_pretty_print(VALUE self, VALUE pp)
 
 static VALUE
 rb_set_pretty_print_cycle(VALUE self, VALUE pp)
-{   
-    /* TODO: implement */
+{
+    Set *set = get_set_ptr(self);
+    return rb_funcall(pp, rb_intern("text"), 1, rb_sprintf("#<%s: {%s}>", rb_class2name(rb_class_of(self)), set_empty_p(set)==Qtrue? "" : "..."));
 }
 
 void
