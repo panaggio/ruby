@@ -580,7 +580,7 @@ rb_set_each_i(VALUE key, VALUE value)
 static VALUE
 rb_set_each(VALUE self)
 {
-    set_no_block_given(self, rb_intern(":each"));
+    set_no_block_given(self, rb_intern("each"));
 
     rb_hash_foreach(self->hash, rb_set_each_i, 0);
     return self;
@@ -680,7 +680,7 @@ set_delete_if_i(VALUE o, VALUE value, Set *set)
 static VALUE
 rb_set_delete_if(VALUE self)
 {
-    set_no_block_given(self, rb_intern(":delete_if"));
+    set_no_block_given(self, rb_intern("delete_if"));
 
     Set *set = get_set_ptr(self);
     rb_hash_foreach(self->hash, set_delete_if_i, set);
@@ -706,7 +706,7 @@ set_keep_if_i(VALUE o, VALUE value, Set *set)
 static VALUE
 rb_set_keep_if(VALUE self)
 {
-    set_no_block_given(self, rb_intern(":keep_if"));
+    set_no_block_given(self, rb_intern("keep_if"));
 
     Set *set = get_set_ptr(self);
     rb_hash_foreach(self->hash, set_keep_if_i, set);
@@ -729,7 +729,7 @@ set_collect_bang_i(VALUE key, VALUE value, Set *set)
 static VALUE
 rb_set_collect_bang(VALUE self)
 {
-    set_no_block_given(self, rb_intern(":collect!"));
+    set_no_block_given(self, rb_intern("collect!"));
 
     /* TODO: check if there's not better way of checking classes */
     VALUE new = set_new(rb_class_of(self));
@@ -753,7 +753,7 @@ rb_set_collect_bang(VALUE self)
 static VALUE
 rb_set_reject_bang(VALUE self)
 {
-    set_no_block_given(self, rb_intern(":reject!"));
+    set_no_block_given(self, rb_intern("reject!"));
 
     Set *set = get_set_ptr(self);
     int n = set_size(set);
@@ -771,7 +771,7 @@ rb_set_reject_bang(VALUE self)
 static VALUE
 rb_set_select_bang(VALUE self)
 {
-    set_no_block_given(self, rb_intern(":select!"));
+    set_no_block_given(self, rb_intern("select!"));
 
     Set *set = get_set_ptr(self);
     int n = set_size(set);
@@ -1028,7 +1028,7 @@ rb_set_classify(VALUE self)
         return ST_CONTINUE;
     }
 
-    set_no_block_given(self, rb_intern(":classify"));
+    set_no_block_given(self, rb_intern("classify"));
 
     rb_hash_foreach(self->hash, set_classify_i, 0);
 
@@ -1062,7 +1062,7 @@ rb_set_divide(VALUE self)
     /* TODO: implement */
 }
 
-#define InspectKey rb_intern(":__inspect_key__")
+#define InspectKey rb_intern("__inspect_key__")
 
 /*
  * Document-method: inspect
