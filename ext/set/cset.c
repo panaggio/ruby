@@ -1004,7 +1004,7 @@ rb_set_hash(VALUE self)
 }
 
 static VALUE
-rb_set_eql(VALUE self, VALUE other)
+rb_set_eql_p(VALUE self, VALUE other)
 {
     Set *self_set = get_set_ptr(self);
     Set *other_set = get_set_ptr(other);
