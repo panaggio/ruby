@@ -817,10 +817,11 @@ set_merge(Set *self, Set *other_set)
     hash_update(self->hash, other_set->hash);
 }
 
-static void
+static VALUE
 set_merge_i(VALUE e, Set *set, Set *o_set)
 {
     set_add(set, e);
+    return ST_CONTINUE;
 }
 
 /*
@@ -914,6 +915,14 @@ rb_set_difference(VALUE self, VALUE a_enum)
     return new;
 }
 
+static VALUE
+rb_set_intersection_i(VALUE e, Set *set, Set *o_set)
+{
+    if (set_include_p(e))
+        set_add(o_set, e);
+    return ST_CONTINUE;
+}
+
 /*
  * Document-method: & 
  * call-seq: &(enum)
@@ -922,11 +931,13 @@ rb_set_difference(VALUE self, VALUE a_enum)
  * given enumerable object.
  */
 static VALUE
-rb_set_intersction(VALUE self, VALUE a_enum)
+rb_set_intersection(VALUE self, VALUE a_enum)
 {
     /* TODO: check if there's not better way of checking classes */
     VALUE new = set_new(rb_class_of(self));
-    /* TODO: rb_set_do_with_enum(enum) { |o| add(o) if include?(o)} */
+    Set *new_set = get_set_ptr(new);
+    Set *self_set = get_set_ptr(self);
+    set_do_with_enum(self_set, rb_set_intersection_i, new_set, a_enum);
     return new;
 }
 
