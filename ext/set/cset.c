@@ -941,6 +941,16 @@ rb_set_intersection(VALUE self, VALUE a_enum)
     return new;
 }
 
+static VALUE
+rb_set_exclusive_i(VALUE e, Set *set, Set *o_set)
+{
+    if (set_include_p(o_set, e) == Qtrue)
+        set_delete(o_set, e);
+    else
+        set_add(o_set, e);
+    return ST_CONTINUE;
+}
+
 /*
  * Document-method: ^
  * call-seq: ^(enum)
@@ -954,8 +964,9 @@ rb_set_exclusive(VALUE self, VALUE a_enum)
 {
     /* TODO: check if there's not better way of checking classes */
     VALUE new = set_new(rb_class_of(self));
-    /* TODO: rb_set_each(self)
-             { |o| if n.include?(o) then n.delete(o) else n.add(o) end } */
+    Set *new_set = get_set_ptr(new);
+    Set *self_set = get_set_ptr(self);
+    set_do_with_enum(self_set, rb_set_exclusive_i, new_set, a_enum);
     return new;
 }
 
