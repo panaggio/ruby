@@ -451,7 +451,7 @@ rb_set_include_p(VALUE self, VALUE o)
 }
 
 static VALUE
-set_test_all_p(VALUE self, VALUE set)
+set_test_all_p(Set *self, Set *set)
 {
     VALUE test = Qtrue;
 
@@ -970,7 +970,6 @@ rb_set_exclusive(VALUE self, VALUE a_enum)
     return new;
 }
 
-
 /*
  * Document-method: ==
  * call-seq: ==(other)
@@ -981,7 +980,20 @@ rb_set_exclusive(VALUE self, VALUE a_enum)
 static VALUE
 rb_set_equal(VALUE self, VALUE other)
 {
-    /* TODO: implement */
+    Set *self_set, *other_set;
+    if (rb_obj_equal(self) == rb_obj_equal(other))
+        return Qtrue;
+
+    self_set = get_set_ptr(self);
+    other_set = get_set_ptr(other);
+
+    /* TODO: Find a better way to call Hash#== */
+    if (rb_obj_is_kind_of(other, rb_class_of(self)))
+        return rb_funcall(self_set->hash, rb_intern("=="), 1, other_set->hash);
+
+    if (rb_obj_is_kind_of(other, rb_cSet) && set_size(self_set) == set_size(other_set))
+        return set_test_all_p(self_set, other_set);
+    return Qfalse;
 }
 
 static VALUE
