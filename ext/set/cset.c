@@ -82,19 +82,6 @@ set_do_with_array(Set *set, void (*func)(ANYARGS), Set *o_set, VALUE arr)
         func(RARRAY_PTR(arr)[i], set, o_set);
 }
 
-static void
-set_do_with_hash(Set *set, void (*func)(ANYARGS), Set *o_set, VALUE hash)
-{
-    static VALUE
-    set_do_with_hash_i(VALUE key, VALUE val)
-    {
-        func(e, set, o_set);
-        return ST_CONTINUE;
-    }
-
-    rb_hash_foreach(hash, set_do_with_hash_i, 0);
-}
-
 /*
  * Document-method: do_with_enum
  * call-seq: do_with_enum(enum, &block)
@@ -107,8 +94,6 @@ rb_set_do_with_enum(VALUE self, VALUE a_enum)
 {
     if (TYPE(a_enum) == T_ARRAY)
         rb_ary_each(a_enum);
-    else if (TYPE(a_enum) == T_HASH)
-        rb_hash_foreach(a_enum, rb_yield, 0);
     else if (rb_respond_to(self, rb_intern("each_entry")))
         rb_funcall(a_enum, rb_intern("each_entry"), 0);
     else if (rb_respond_to(self, rb_intern("each")))
@@ -846,8 +831,6 @@ rb_set_merge(VALUE self, VALUE a_enum)
     }
     else if (TYPE(a_enum) == T_ARRAY)
         set_do_with_array(set, rb_set_merge_i, 0, a_enum);
-    else if (TYPE(a_enum) == T_HASH)
-        set_do_with_hash(set, rb_set_merge_i, 0, a_enum);
     else {
         /* TODO: rb_set_do_with_enum(enum) { |o| add(o) } */
     }
