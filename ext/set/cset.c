@@ -918,7 +918,7 @@ rb_set_difference(VALUE self, VALUE a_enum)
 static VALUE
 rb_set_intersection_i(VALUE e, Set *set, Set *o_set)
 {
-    if (set_include_p(e))
+    if (set_include_p(set, e))
         set_add(o_set, e);
     return ST_CONTINUE;
 }
