@@ -552,10 +552,10 @@ rb_set_proper_superset_p(VALUE self, VALUE other)
 }
 
 static VALUE
-set_no_block_given(VALUE self, VALUE method)
+set_no_block_given(VALUE self, ID method_id)
 {
     if (!rb_block_given_p())
-        return rb_enumeratorize(self, method, 0, 0);
+        return rb_enumeratorize(self, ID2SYM(method_id), 0, 0);
 }
 
 static VALUE
