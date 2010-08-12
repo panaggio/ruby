@@ -1105,8 +1105,10 @@ rb_set_inspect(VALUE self)
 
 static VALUE
 rb_set_pretty_print(VALUE self, VALUE pp)
-{   
-    /* TODO: implement */
+{
+    rb_funcall(pp, rb_intern("text"), 1, rb_sprintf("#<%s: {", rb_class2name(rb_class_of(self))));
+    rb_eval_string("pp.nest(1) { pp.seplist(self) { |o| pp.pp o } }");
+    return rb_funcall(pp, rb_intern("text"), 1, rb_sprintf("}>"));
 }
 
 static VALUE
