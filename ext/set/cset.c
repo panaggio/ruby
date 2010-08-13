@@ -195,7 +195,7 @@ rb_set_merge(VALUE self, VALUE a_enum)
         set_merge(set, a_enum_set);
     }
     else
-        set_do_with_enum(self, rb_set_merge_i, 0, a_enum);
+        set_do_with_enum(self, set_merge_i, 0, a_enum);
 
     return self;
 }
