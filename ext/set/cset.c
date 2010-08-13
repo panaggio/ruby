@@ -131,7 +131,7 @@ static VALUE
 rb_set_add(VALUE self, VALUE o)
 {
     Set *set = get_set_ptr(self);
-    set_add(set->hash, o);
+    set_add(set, o);
     return self;
 }
 
