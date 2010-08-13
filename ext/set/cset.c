@@ -853,6 +853,13 @@ set_subtract(Set *self, Set *other_set)
     /*TODO: implement*/
 }
 
+static VALUE
+set_subtract_i(VALUE e, Set *set, Set *o_set)
+{
+    set_delete(set, e);
+    return ST_CONTINUE;    
+}
+
 /*
  * Document-method: subtract
  * call-seq: subtract(enum)
@@ -863,8 +870,8 @@ set_subtract(Set *self, Set *other_set)
 static VALUE
 rb_set_subtract(VALUE self, VALUE a_enum)
 {
-    /* TODO: rb_set_do_with_enum(enum) { |o| delete(o) } */
-
+    Set *set  = get_set_ptr(self);
+    set_do_with_enum(set, rb_set_subtract_i, 0, a_enum);
     return self;
 }
 
@@ -1086,6 +1093,7 @@ static VALUE
 rb_set_divide(VALUE self)
 {   
     /* TODO: implement */
+    
 }
 
 #define InspectKey rb_intern("__inspect_key__")
