@@ -415,31 +415,54 @@ rb_set_to_a(VALUE self)
 }
 
 static VALUE
+set_includes(Set *set, VALUE o)
+{
+    return rb_hash_lookup2(set->hash, o, Qfalse);
+}
+
+/*
+ * Document-method: include?
+ * call-seq: include?(o)
+ *
+ * Returns true if the set contains the given object.
+ */
+static VALUE
+rb_set_include_p(VALUE self, VALUE o)
+{
+    Set *set = get_set_ptr(self);
+    return set_includes(set, o);
+}
+
+static int
+set_flatten_merge_i(VALUE e, VALUE value, Set *args[2])
+{
+    VALUE e_id;
+    Set *self_set = args[0];
+    Set *seen_set = args[1];
+
+    if (rb_obj_is_kind_of(e, rb_cSet)) {
+        e_id = rb_obj_id(e);
+        if (set_includes(seen_set, e_id))
+            rb_raise(rb_eArgumentError, "tried to flatten recursive Set");
+
+        set_add(seen_set, e_id);
+        set_flatten_merge_i(e, 0);
+        set_delete(seen_set, e_id);
+    }
+    else {
+        set_add(self_set, e);
+    }
+    return ST_CONTINUE;
+}
+
+static VALUE
 set_flatten_merge(VALUE self, VALUE orig, VALUE seen)
 {
-    Set *self_set = get_set_ptr(self);
     Set *orig_set = get_set_ptr(orig);
-    Set *seen_set = get_set_ptr(seen);
 
-    static int
-    set_flatten_merge_i(VALUE e, VALUE value)
-    {
-        if (rb_obj_kind_of(e, rb_cSet)) {
-            VALUE e_id = rb_obj_id(e);
-            if (rb_set_include_p(seen, e_id))
-                rb_raise(rb_eArgumentError, "tried to flatten recursive Set");
+    Set *args[2] = {get_set_ptr(self), get_set_ptr(seen)};
 
-            set_add(seen_set, e_id);
-            set_flatten_merge_i(e, 0);
-            set_delete(seen_set, e_id);
-        }
-        else {
-            set_add(self_set, e);
-        }
-        return ST_CONTINUE;
-    }
-
-    rb_hash_foreach(orig->hash, set_flatten_merge_i, 0);
+    rb_hash_foreach(orig->hash, set_flatten_merge_i, args);
 
     return self;
 }
@@ -510,25 +533,6 @@ rb_set_flatten_bang(VALUE self)
     if (set_detect(self) != Qnil)
         return rb_set_replace(self, rb_set_flatten);
     return Qnil;
-}
-
-static VALUE
-set_include(VALUE hash, VALUE o)
-{
-    return rb_hash_lookup2(hash, o, Qfalse);
-}
-
-/*
- * Document-method: include?
- * call-seq: include?(o)
- *
- * Returns true if the set contains the given object.
- */
-static VALUE
-rb_set_include_p(VALUE self, VALUE o)
-{
-    Set *set = get_set_ptr(self);
-    return set_include(set->hash, o);
 }
 
 static VALUE
@@ -875,7 +879,7 @@ rb_set_difference(VALUE self, VALUE a_enum)
 static VALUE
 rb_set_intersection_i(VALUE e, Set *set, Set *o_set)
 {
-    if (set_include_p(set, e))
+    if (set_includes(set, e))
         set_add(o_set, e);
     return ST_CONTINUE;
 }
@@ -900,7 +904,7 @@ rb_set_intersection(VALUE self, VALUE a_enum)
 static VALUE
 rb_set_exclusive_i(VALUE e, Set *set, Set *o_set)
 {
-    if (set_include_p(o_set, e) == Qtrue)
+    if (set_includes(o_set, e) == Qtrue)
         set_delete(o_set, e);
     else
         set_add(o_set, e);
