@@ -74,7 +74,7 @@ set_alloc(VALUE klass)
 }
 
 static void
-set_do_with_enum(Set *set, void (*func)(ANYARGS), Set *o_set, VALUE a_enum)
+set_do_with_enum(Set *set, VALUE (*func)(ANYARGS), Set *o_set, VALUE a_enum)
 {
     int i;
 
