@@ -79,8 +79,8 @@ set_do_with_enum(Set *set, void (*func)(ANYARGS), Set *o_set, VALUE a_enum)
     int i;
 
     if (TYPE(a_enum) == T_ARRAY)
-        for (i=0; i<RARRAY_LEN(arr); i++)
-            func(RARRAY_PTR(arr)[i], set, o_set);
+        for (i=0; i<RARRAY_LEN(a_enum); i++)
+            func(RARRAY_PTR(a_enum)[i], set, o_set);
     else {
         VALUE proc = rb_proc_new(func, 0);
         /* TODO: create a way to pass the Proc as a block to rb_funcall */
