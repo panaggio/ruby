@@ -389,6 +389,14 @@ rb_set_empty_p(VALUE self)
     return RHASH_EMPTY_P(set->hash) ? Qtrue : Qfalse;
 }
 
+static int
+set_to_a_i(VALUE key, VALUE value, VALUE ary)
+{
+    if (key == Qundef) return ST_CONTINUE;
+    rb_ary_push(ary, rb_assoc_new(key, value));
+    return ST_CONTINUE;
+}
+
 /*
  * Document-method: to_a
  * call-seq: to_a
@@ -400,8 +408,8 @@ rb_set_to_a(VALUE self)
 {
     Set *set = get_set_ptr(self);
     VALUE ary = rb_ary_new();
-    rb_hash_foreach(hash, to_a_i, ary);
-    OBJ_INFECT(ary, hash);
+    rb_hash_foreach(set->hash, set_to_a_i, ary);
+    OBJ_INFECT(ary, set->hash);
 
     return ary;
 }
@@ -413,7 +421,7 @@ set_flatten_merge(VALUE self, VALUE orig, VALUE seen)
     Set *orig_set = get_set_ptr(orig);
     Set *seen_set = get_set_ptr(seen);
 
-    static VALUE
+    static int
     set_flatten_merge_i(VALUE e, VALUE value)
     {
         if (rb_obj_kind_of(e, rb_cSet)) {
@@ -471,7 +479,7 @@ rb_set_flatten(VALUE self)
     return rb_set_flatten_merge(self, orig, seen);
 }
 
-static VALUE
+static int
 set_detect_i(VALUE key, VALUE value, VALUE *return_val)
 {
     if (rb_obj_kind_of(key, rb_cSet) != Qtrue)
@@ -529,7 +537,7 @@ set_test_all_p(Set *self, Set *set)
     VALUE test = Qtrue;
 
     /* TODO: Check if ST_STOP can break the caller rb_hash_foreach */
-    static void;
+    static int
     set_test_all_p_i(VALUE e, VALUE value)
     {
         if (rb_hash_lookup(set->hash, e) != Qtrue) {
@@ -631,7 +639,7 @@ set_no_block_given(VALUE self, ID method_id)
         return rb_enumeratorize(self, ID2SYM(method_id), 0, 0);
 }
 
-static VALUE
+static int
 rb_set_each_i(VALUE key, VALUE value)
 {
     rb_yield(key);
@@ -689,7 +697,7 @@ rb_set_delete_bang(VALUE self, VALUE o)
     return self;
 }
 
-static VALUE
+static int
 set_delete_if_i(VALUE o, VALUE value, Set *set)
 {
     if (RTEST(rb_yield(o)))
@@ -714,7 +722,7 @@ rb_set_delete_if(VALUE self)
     return self;
 }
 
-static VALUE
+static int
 set_keep_if_i(VALUE o, VALUE value, Set *set)
 {
     /* TODO: see if set_keep_if_i can't be merged with set_delete_if_i */
@@ -740,7 +748,7 @@ rb_set_keep_if(VALUE self)
     return self;
 }
 
-static VALUE
+static int
 set_collect_bang_i(VALUE key, VALUE value, Set *set)
 {
     set_add(set, rb_yield());
@@ -980,7 +988,7 @@ rb_set_eql_p(VALUE self, VALUE other)
  *             #     2001=>#<Set: {"c.rb", "d.rb", "e.rb"}>,
  *             #     2002=>#<Set: {"f.rb"}>}
  */
-static VALUE
+static int
 rb_set_classify(VALUE self)
 {
     Set *set = get_set_ptr(self);
@@ -1020,7 +1028,7 @@ tsort_each_child(VALUE tsort, VALUE node)
     rb_funcall(rb_hash_fetch(tsort, node), rb_to_id(rb_intern("each")));
 }
 
-static VALUE
+static int
 set_divide_i_i(VALUE v, VALUE value, VALUE args[2])
 {
     rb_yeild(2, args[0], v);
@@ -1028,7 +1036,7 @@ set_divide_i_i(VALUE v, VALUE value, VALUE args[2])
     return ST_CONTINUE;
 }
 
-static VALUE
+static int
 set_divide_i(VALUE u, VALUE value, VALUE args[2])
 {
     VALUE a = rb_ary_new();
@@ -1038,7 +1046,7 @@ set_divide_i(VALUE u, VALUE value, VALUE args[2])
     return ST_CONTINUE;
 }
 
-static VALUE
+static int
 hash_values_i(VALUE key, VALUE value, VALUE ary)
 {
     if (key == Qundef) return ST_CONTINUE;
