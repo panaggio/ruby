@@ -847,12 +847,6 @@ rb_set_merge(VALUE self, VALUE a_enum)
     return self;
 }
 
-static void
-set_subtract(Set *self, Set *other_set)
-{
-    /*TODO: implement*/
-}
-
 static VALUE
 set_subtract_i(VALUE e, Set *set, Set *o_set)
 {
