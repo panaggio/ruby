@@ -915,10 +915,7 @@ static VALUE
 rb_set_difference(VALUE self, VALUE a_enum)
 {
     VALUE new = set_dup(self);
-    Set *new_set  = get_set_ptr(new);
-    Set *enum_set = get_set_ptr(a_enum);
-    set_subtract(new_set, enum_set);
-
+    rb_set_subtract(new, a_enum);
     return new;
 }
 
