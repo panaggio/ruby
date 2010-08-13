@@ -443,7 +443,7 @@ set_flatten_merge_i(VALUE e, VALUE value, Set *args[2])
     if (rb_obj_is_kind_of(e, rb_cSet)) {
         e_id = rb_obj_id(e);
         if (set_includes(seen_set, e_id))
-            rb_raise(rb_eArgumentError, "tried to flatten recursive Set");
+            rb_raise(rb_eArgError, "tried to flatten recursive Set");
 
         set_add(seen_set, e_id);
         set_flatten_merge_i(e, 0);
