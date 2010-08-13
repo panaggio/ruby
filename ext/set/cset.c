@@ -74,9 +74,10 @@ set_alloc(VALUE klass)
 }
 
 static void
-set_do_with_enum(Set *set, VALUE (*func)(ANYARGS), Set *o_set, VALUE a_enum)
+set_do_with_enum(VALUE self, VALUE (*func)(ANYARGS), Set *o_set, VALUE a_enum)
 {
     int i;
+    Set *set = get_set_ptr(self);
 
     if (TYPE(a_enum) == T_ARRAY)
         for (i=0; i<RARRAY_LEN(a_enum); i++)
@@ -111,6 +112,36 @@ rb_set_do_with_enum(VALUE self, VALUE a_enum)
         rb_funcall(a_enum, rb_intern("each"), 0);
     else
         rb_raise(rb_eArgError, "value must be enumerable");
+}
+
+static VALUE
+set_merge_i(VALUE e, Set *set, Set *o_set)
+{
+    set_add(set, e);
+    return ST_CONTINUE;
+}
+
+/*
+ * Document-method: merge
+ * call-seq: merge(enum)
+ *
+ * Merges the elements of the given enumerable object to the set and
+ * returns self.
+ */
+static VALUE
+rb_set_merge(VALUE self, VALUE a_enum)
+{
+    Set *set = get_set_ptr(self);
+    Set *a_enum_set;
+    /* TODO: check if there's not a better way of checking classes */
+    if (rb_class_of(self) == rb_class_of(a_enum)){
+        a_enum_set = get_set_ptr(a_enum);
+        set_merge(set, a_enum_set);
+    }
+    else
+        set_do_with_enum(self, rb_set_merge_i, 0, a_enum);
+
+    return self;
 }
 
 static VALUE
@@ -818,36 +849,6 @@ set_merge(Set *self, Set *other_set)
 }
 
 static VALUE
-set_merge_i(VALUE e, Set *set, Set *o_set)
-{
-    set_add(set, e);
-    return ST_CONTINUE;
-}
-
-/*
- * Document-method: merge
- * call-seq: merge(enum)
- *
- * Merges the elements of the given enumerable object to the set and
- * returns self.
- */
-static VALUE
-rb_set_merge(VALUE self, VALUE a_enum)
-{
-    Set *set = get_set_ptr(self);
-    Set *a_enum_set;
-    /* TODO: check if there's not a better way of checking classes */
-    if (rb_class_of(self) == rb_class_of(a_enum)){
-        a_enum_set = get_set_ptr(a_enum);
-        set_merge(set, a_enum_set);
-    }
-    else
-        set_do_with_enum(set, rb_set_merge_i, 0, a_enum);
-
-    return self;
-}
-
-static VALUE
 set_subtract_i(VALUE e, Set *set, Set *o_set)
 {
     set_delete(set, e);
@@ -864,8 +865,7 @@ set_subtract_i(VALUE e, Set *set, Set *o_set)
 static VALUE
 rb_set_subtract(VALUE self, VALUE a_enum)
 {
-    Set *set  = get_set_ptr(self);
-    set_do_with_enum(set, rb_set_subtract_i, 0, a_enum);
+    set_do_with_enum(self, rb_set_subtract_i, 0, a_enum);
     return self;
 }
 
@@ -934,8 +934,7 @@ rb_set_intersection(VALUE self, VALUE a_enum)
     /* TODO: check if there's not better way of checking classes */
     VALUE new = set_new(rb_class_of(self));
     Set *new_set = get_set_ptr(new);
-    Set *self_set = get_set_ptr(self);
-    set_do_with_enum(self_set, rb_set_intersection_i, new_set, a_enum);
+    set_do_with_enum(self, rb_set_intersection_i, new_set, a_enum);
     return new;
 }
 
@@ -963,8 +962,7 @@ rb_set_exclusive(VALUE self, VALUE a_enum)
     /* TODO: check if there's not better way of checking classes */
     VALUE new = set_new(rb_class_of(self));
     Set *new_set = get_set_ptr(new);
-    Set *self_set = get_set_ptr(self);
-    set_do_with_enum(self_set, rb_set_exclusive_i, new_set, a_enum);
+    set_do_with_enum(self, rb_set_exclusive_i, new_set, a_enum);
     return new;
 }
 
