@@ -136,6 +136,27 @@ rb_set_add(VALUE self, VALUE o)
 }
 
 static void
+set_delete(Set *set, VALUE o)
+{
+    rb_hash_delete(set->hash, o);
+}
+
+/*
+ * Document-method: delete
+ * call-seq: delete(o)
+ *
+ * Deletes the given object from the set and returns self.  Use +subtract+ to
+ * delete many items at once.
+ */
+static VALUE
+rb_set_delete(VALUE self, VALUE o)
+{
+    Set *set = get_set_ptr(self);
+    set_delete(set, o);
+    return self;
+}
+
+static void
 set_merge(Set *self, Set *other_set)
 {
     /* TODO find a better way of running Hash#update */
@@ -662,27 +683,6 @@ rb_set_add_bang(VALUE self, VALUE o)
     if (RTEST(rb_hash_lookup2(set->hash, o, Qnil)))
         return Qnil;
     set_add(set, o);
-    return self;
-}
-
-static void
-set_delete(Set *set, VALUE o)
-{
-    rb_hash_delete(set->hash, o);
-}
-
-/*
- * Document-method: delete
- * call-seq: delete(o)
- *
- * Deletes the given object from the set and returns self.  Use +subtract+ to
- * delete many items at once.
- */
-static VALUE
-rb_set_delete(VALUE self, VALUE o)
-{
-    Set *set = get_set_ptr(self);
-    set_delete(set, o);
     return self;
 }
 
