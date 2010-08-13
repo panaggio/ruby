@@ -1100,7 +1100,25 @@ rb_set_divide(VALUE self)
 static VALUE
 rb_set_inspect(VALUE self)
 {   
-    /* TODO: implement */
+    VALUE cur_thread = rb_thread_current();
+    VALUE ids = rb_thread_local_aref(cur_thread, InspectKey);
+
+    static VALUE
+    rb_set_inspect_i(VALUE n)
+    {
+        rb_ary_push(ids, rb_obj_id(self));
+        return rb_sprintf("#<%s: {%s}>", rb_class2name(rb_class_of(self)), rb_ary_subseq(rb_set_to_a(self), 1, -2));
+    }
+
+    if (ids == Qnil){
+        ids = rb_ary_new();
+        rb_thread_aset(cur_thread, InspectKey, ids);
+    }
+
+    if (rb_ary_includes(ids, rb_obj_id(self)))
+        return rb_sprintf("#<%s: {...}>", rb_class2name(rb_class_of(self)));
+
+    return rb_ensure(rb_set_inspect_i, 0, rb_ary_pop, ids);
 }
 
 static VALUE
