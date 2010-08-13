@@ -252,10 +252,49 @@ rb_set_s_create(int argc, VALUE *argv, VALUE klass)
     return rb_set_initialize(argc, argv, klass);
 }
 
+/*
+ * Document-method: clear
+ * call-seq: clear
+ *
+ * Removes all elements and returns self.
+ */
+static VALUE
+rb_set_clear(VALUE self)
+{
+    Set *set = get_set_ptr(self);
+    /* TODO find a better way of running Hash#clear than copying code */
+    rb_funcall(set->hash, rb_intern("clear"), 0);
+    return self;
+}
+
 static void
 set_replace(Set *dest, Set *orig)
 {
     dest->hash = rb_hash_dup(orig->hash);
+}
+
+/*
+ * Document-method: replace
+ * call-seq: replace(enum)
+ *
+ * Replaces the contents of the set with the contents of the given
+ * enumerable object and returns self.
+ */
+static VALUE
+rb_set_replace(VALUE self, VALUE a_enum)
+{
+    Set *set = get_set_ptr(self), *a_enum_set;
+    /* TODO: check if there's not better way of checking classes */
+    if (rb_class_of(self) == rb_class_of(a_enum)) {
+        a_enum_set = get_set_ptr(a_enum);
+        set_replace(set, a_enum_set);
+    }
+    else {
+        rb_set_clear(self);
+        rb_set_merge(self,a_enum);
+    }
+
+    return self;
 }
 
 /*
@@ -348,43 +387,6 @@ rb_set_empty_p(VALUE self)
 {
     Set *set = get_set_ptr(self);
     return RHASH_EMPTY_P(set->hash) ? Qtrue : Qfalse;
-}
-
-/*
- * Document-method: clear
- * call-seq: clear
- *
- * Removes all elements and returns self.
- */
-static VALUE
-rb_set_clear(VALUE self)
-{
-    Set *set = get_set_ptr(self);
-    /* TODO find a better way of running Hash#clear than copying code */
-    rb_funcall(set->hash, rb_intern("clear"), 0);
-    return self;
-}
-
-/*
- * Document-method: replace
- * call-seq: replace(enum)
- *
- * Replaces the contents of the set with the contents of the given
- * enumerable object and returns self.
- */
-static VALUE
-rb_set_replace(VALUE self, VALUE a_enum)
-{
-    Set *set = get_set_ptr(self);
-    /* TODO: check if there's not better way of checking classes */
-    if (rb_class_of(self) == rb_class_of(a_enum))
-        set_replace(set, a_enum);
-    else {
-        rb_set_clear(self);
-        rb_set_merge(self,a_enum);
-    }
-
-    return self;
 }
 
 /*
