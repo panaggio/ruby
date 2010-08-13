@@ -114,6 +114,27 @@ rb_set_do_with_enum(VALUE self, VALUE a_enum)
         rb_raise(rb_eArgError, "value must be enumerable");
 }
 
+static void
+set_add(Set *set, VALUE o)
+{
+    rb_hash_aset(set->hash, o, Qtrue);
+}
+
+/*
+ * Document-method: add
+ * call-seq: add(o)
+ *
+ * Adds the given object to the set and returns self.  Use +merge+ to
+ * add many elements at once.
+ */
+static VALUE
+rb_set_add(VALUE self, VALUE o)
+{
+    Set *set = get_set_ptr(self);
+    set_add(set->hash, o);
+    return self;
+}
+
 static VALUE
 set_merge_i(VALUE e, Set *set, Set *o_set)
 {
@@ -610,27 +631,6 @@ rb_set_each(VALUE self)
     set_no_block_given(self, rb_intern("each"));
 
     rb_hash_foreach(self->hash, rb_set_each_i, 0);
-    return self;
-}
-
-static void
-set_add(Set *set, VALUE o)
-{
-    rb_hash_aset(set->hash, o, Qtrue);
-}
-
-/*
- * Document-method: add
- * call-seq: add(o)
- *
- * Adds the given object to the set and returns self.  Use +merge+ to
- * add many elements at once.
- */
-static VALUE
-rb_set_add(VALUE self, VALUE o)
-{
-    Set *set = get_set_ptr(self);
-    set_add(set->hash, o);
     return self;
 }
 
