@@ -39,7 +39,7 @@ set_memsize(const void *ptr)
 {
     size_t size = 0;
     if (ptr) {
-        const Set *set = ptr;
+        /* const Set *set = ptr; */
         size = sizeof(Set);
         /* TODO: check a way to calculate hash memsize */
         /* size += rb_hash_memsize(set->hash); */
