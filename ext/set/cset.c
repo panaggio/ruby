@@ -1059,6 +1059,44 @@ rb_set_classify(VALUE self)
     return hash;
 }
 
+static VALUE
+tsort_each_node(VALUE tsort)
+{
+    return rb_funcall(tsort, rb_to_id(rb_intern("each_key")));
+}
+
+static VALUE
+tsort_each_child(VALUE tsort, VALUE node)
+{
+    rb_funcall(rb_hash_fetch(tsort, node), rb_to_id(rb_intern("each")));
+}
+
+static VALUE
+set_divide_i_i(VALUE v, VALUE value, VALUE args[2])
+{
+    rb_yeild(2, args[0], v);
+    rb_ary_push(args[1], v);
+    return ST_CONTINUE;
+}
+
+static VALUE
+set_divide_i(VALUE u, VALUE value, VALUE args[2])
+{
+    VALUE a = rb_ary_new();
+    VALUE fargs[2] = {u, a};
+    rb_funcall(args[0], rb_to_id(rb_intern("[]=")), 2, args);
+    rb_hash_foreach(((Set) args[1])->hash, set_divide_i_i, fargs);
+    return ST_CONTINUE;
+}
+
+static VALUE
+hash_values_i(VALUE key, VALUE value, VALUE ary)
+{
+    if (key == Qundef) return ST_CONTINUE;
+    rb_ary_push(ary, value);
+    return ST_CONTINUE;
+}
+
 /*
  * Document-method: divide
  * call-seq: divide(&block)
@@ -1082,9 +1120,38 @@ rb_set_classify(VALUE self)
  */
 static VALUE
 rb_set_divide(VALUE self)
-{   
-    /* TODO: implement */
-    
+{
+    VALUE new = set_new();
+    VALUE ary, args[2];
+    Set *set;
+
+    set_no_block_given(self, rb_to_id(rb_intern("divide")));
+
+    /* TODO: discover how to get the passed block to call proc_arity */
+    if (rb_proc_arity()) {
+        /* TODO: Find a better way of calling require */
+        rb_eval_string("require 'tsort'");
+        VALUE dig = rb_hash_new();
+        /* TODO: Find a better way of passint TSort as an argument */
+        rb_extend(dig, rb_eval_string("TSort"));
+        rb_define_singleton_method(dig,"tsort_each_node", tsort_each_node, 0);
+        rb_define_singleton_method(dig,"tsort_each_child", tsort_each_child, 1);
+
+        set = get_set_ptr(self);
+        args = {dig, (VALUE) set};
+        rb_hash_foreach(set->hash, set_divide_i, args);
+
+        /* TODO: Find a better way of calling each_strongly_connected_component */
+        rb_eval_str("dig.each_strongly_connected_component { |css|
+            new.add(self.class.new(css))
+        }");
+        return new;
+    }
+
+    /* TODO: Find a better way to call Hash#values */
+    ary = rb_ary_new();
+    rb_hash_foreach(rb_set_classify(self), hash_values_i, ary);
+    return ary;
 }
 
 #define InspectKey rb_intern("__inspect_key__")
