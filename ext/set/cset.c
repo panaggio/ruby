@@ -313,7 +313,7 @@ static VALUE
 rb_set_untaint(VALUE self)
 {
     Set *set = get_set_ptr(self);
-    OBJ_UNSET(set->hash,FL_TAINT);
+    FL_UNSET(set->hash,FL_TAINT);
     rb_obj_untaint(self);
     return self;
 }
