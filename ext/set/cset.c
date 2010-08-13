@@ -135,46 +135,11 @@ rb_set_add(VALUE self, VALUE o)
     return self;
 }
 
-static int
-rb_hash_update_i(VALUE key, VALUE value, VALUE hash)
-{
-    if (key == Qundef) return ST_CONTINUE;
-    hash_update(hash, key);
-    st_insert(RHASH(hash)->ntbl, key, value);
-    return ST_CONTINUE;
-}
-
-static int
-rb_hash_update_block_i(VALUE key, VALUE value, VALUE hash)
-{
-    if (key == Qundef) return ST_CONTINUE;
-    if (rb_hash_has_key(hash, key)) {
-        value = rb_yield_values(3, key, rb_hash_aref(hash, key), value);
-    }
-    hash_update(hash, key);
-    st_insert(RHASH(hash)->ntbl, key, value);
-    return ST_CONTINUE;
-}
-
-static VALUE
-hash_update(VALUE hash1, VALUE hash2)
-{
-    rb_hash_modify(hash1);
-    hash2 = to_hash(hash2);
-    if (rb_block_given_p()) {
-        rb_hash_foreach(hash2, rb_hash_update_block_i, hash1);
-    }
-    else {
-        rb_hash_foreach(hash2, rb_hash_update_i, hash1);
-    }
-    return hash1;
-}
-
 static void
 set_merge(Set *self, Set *other_set)
 {
-    /* TODO find a better way of running Hash#update than copying code */
-    hash_update(self->hash, other_set->hash);
+    /* TODO find a better way of running Hash#update */
+    rb_funcall(self->hash, rb_intern("update"), 1, other_set->hash);
 }
 
 static VALUE
