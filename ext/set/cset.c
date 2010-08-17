@@ -536,23 +536,26 @@ rb_set_flatten_bang(VALUE self)
     return Qnil;
 }
 
+static int
+set_test_all_p_i(VALUE e, VALUE value, VALUE args)
+{
+    Set *set = (Set *) ((VALUE *) args)[0];
+    VALUE *test = (VALUE *) ((VALUE *) args)[0];
+    /* TODO: Check if ST_STOP can break the caller rb_hash_foreach */
+    if (rb_hash_lookup(set->hash, e) != Qtrue) {
+        *test = Qfalse;
+        return ST_STOP;
+    }
+    return ST_CONTINUE;
+}
+
 static VALUE
 set_test_all_p(Set *self, Set *set)
 {
     VALUE test = Qtrue;
+    VALUE args[2] = {(VALUE) set, (VALUE) &test};
 
-    /* TODO: Check if ST_STOP can break the caller rb_hash_foreach */
-    static int
-    set_test_all_p_i(VALUE e, VALUE value)
-    {
-        if (rb_hash_lookup(set->hash, e) != Qtrue) {
-            test = Qfalse;
-            return ST_STOP;
-        }
-        return ST_CONTINUE;
-    }
-
-    rb_hash_foreach(self->hash, set_test_all_p_i, 0);
+    rb_hash_foreach(self->hash, set_test_all_p_i, (VALUE) args);
 
     return test;
 }
