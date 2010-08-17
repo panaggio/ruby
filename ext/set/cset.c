@@ -499,7 +499,7 @@ rb_set_flatten(VALUE self)
     VALUE orig = set_new(klass);
     VALUE seen = set_new(klass);
 
-    return rb_set_flatten_merge(self, orig, seen);
+    return set_flatten_merge(self, orig, seen);
 }
 
 static int
