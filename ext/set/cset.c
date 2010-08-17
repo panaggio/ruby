@@ -503,11 +503,12 @@ rb_set_flatten(VALUE self)
 }
 
 static int
-set_detect_i(VALUE key, VALUE value, VALUE *return_val)
+set_detect_i(VALUE key, VALUE value, VALUE return_val)
 {
+    VALUE *ret_val = (VALUE *) return_val;
     if (rb_obj_is_kind_of(key, rb_cSet) != Qtrue)
         return ST_CONTINUE;
-    *return_val = key;
+    *ret_val = key;
     return ST_STOP;
 }
 
@@ -516,7 +517,7 @@ set_detect(VALUE self)
 {
     VALUE return_val = Qnil;
     Set *set = get_set_ptr(self);
-    rb_hash_foreach(self->hash, set_detect_i, &return_val);
+    rb_hash_foreach(set->hash, set_detect_i, (VALUE) &return_val);
     return return_val;
 }
 
