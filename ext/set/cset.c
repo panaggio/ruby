@@ -804,7 +804,7 @@ rb_set_reject_bang(VALUE self)
 
     Set *set = get_set_ptr(self);
     int n = set_size(set);
-    rb_hash_foreach(set->hash, set_delete_if_i, set);
+    rb_hash_foreach(set->hash, set_delete_if_i, (VALUE) set);
     return set_size(set) == n ? Qnil : self;
 }
 
