@@ -1137,7 +1137,18 @@ rb_set_divide(VALUE self)
     return ary;
 }
 
-#define InspectKey rb_intern("__inspect_key__")
+static VALUE
+set_inspect_i(VALUE args)
+{
+    VALUE self = ((VALUE *) args)[0];
+    VALUE ids = ((VALUE *) args)[1];
+    VALUE inspect_str;
+
+    rb_ary_push(ids, rb_obj_id(self));
+
+    inspect_str = rb_str_substr(rb_ary_to_s(rb_set_to_a(self)), 1, -2);
+    return rb_sprintf("#<%s: {%s}>", rb_class2name(rb_class_of(self)), StringValuePtr(inspect_str));
+}
 
 /*
  * Document-method: inspect
@@ -1150,24 +1161,21 @@ static VALUE
 rb_set_inspect(VALUE self)
 {   
     VALUE cur_thread = rb_thread_current();
-    VALUE ids = rb_thread_local_aref(cur_thread, InspectKey);
-
-    static VALUE
-    rb_set_inspect_i(VALUE n)
-    {
-        rb_ary_push(ids, rb_obj_id(self));
-        return rb_sprintf("#<%s: {%s}>", rb_class2name(rb_class_of(self)), rb_ary_subseq(rb_set_to_a(self), 1, -2));
-    }
+    VALUE inspect_key = rb_intern("__inspect_key__");
+    VALUE ids = rb_thread_local_aref(cur_thread, inspect_key);
+    VALUE args[2];
 
     if (ids == Qnil){
         ids = rb_ary_new();
-        rb_thread_aset(cur_thread, InspectKey, ids);
+        rb_thread_local_aset(cur_thread, inspect_key, ids);
     }
 
     if (rb_ary_includes(ids, rb_obj_id(self)))
         return rb_sprintf("#<%s: {...}>", rb_class2name(rb_class_of(self)));
 
-    return rb_ensure(rb_set_inspect_i, 0, rb_ary_pop, ids);
+    args[0] = self;
+    args[1] = ids;
+    return rb_ensure(set_inspect_i, (VALUE) args, rb_ary_pop, ids);
 }
 
 static VALUE
@@ -1193,6 +1201,7 @@ Init_cset(void)
     rb_cSet  = rb_define_class("CSet", rb_cObject);
 
     rb_define_alloc_func(rb_cSet, set_alloc);
+    rb_define_const(rb_cSet, "InspectKey", ID2SYM(rb_intern("__inspect_key__")));
     rb_define_method(rb_cSet, "initialize", rb_set_initialize, 0);
     rb_define_singleton_method(rb_cSet, "[]", rb_set_s_create, -1);
     rb_define_private_method(rb_cSet, "do_with_enum", rb_set_do_with_enum, 1);
