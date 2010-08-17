@@ -434,11 +434,11 @@ rb_set_include_p(VALUE self, VALUE o)
 }
 
 static int
-set_flatten_merge_i(VALUE e, VALUE value, Set *args[2])
+set_flatten_merge_i(VALUE e, VALUE value, VALUE args)
 {
     VALUE e_id;
-    Set *self_set = args[0];
-    Set *seen_set = args[1];
+    Set *self_set = ((Set **) args)[0];
+    Set *seen_set = ((Set **) args)[1];
 
     if (rb_obj_is_kind_of(e, rb_cSet)) {
         e_id = rb_obj_id(e);
@@ -446,7 +446,7 @@ set_flatten_merge_i(VALUE e, VALUE value, Set *args[2])
             rb_raise(rb_eArgError, "tried to flatten recursive Set");
 
         set_add(seen_set, e_id);
-        set_flatten_merge_i(e, 0);
+        set_flatten_merge_i(e, 0, args);
         set_delete(seen_set, e_id);
     }
     else {
@@ -460,9 +460,9 @@ set_flatten_merge(VALUE self, VALUE orig, VALUE seen)
 {
     Set *orig_set = get_set_ptr(orig);
 
-    Set *args[2] = {get_set_ptr(self), get_set_ptr(seen)};
+    VALUE args[2] = {(VALUE) get_set_ptr(self), (VALUE) get_set_ptr(seen)};
 
-    rb_hash_foreach(orig->hash, set_flatten_merge_i, args);
+    rb_hash_foreach(orig_set->hash, set_flatten_merge_i, (VALUE) args);
 
     return self;
 }
