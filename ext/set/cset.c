@@ -1036,30 +1036,39 @@ rb_set_classify(VALUE self)
 static VALUE
 tsort_each_node(VALUE tsort)
 {
-    return rb_funcall(tsort, rb_to_id(rb_intern("each_key")));
+    return rb_funcall(tsort, rb_to_id(rb_intern("each_key")), 0);
 }
 
 static VALUE
 tsort_each_child(VALUE tsort, VALUE node)
 {
-    rb_funcall(rb_hash_fetch(tsort, node), rb_to_id(rb_intern("each")));
+    return rb_funcall(rb_hash_fetch(tsort, node), rb_to_id(rb_intern("each")), 0);
 }
 
 static int
-set_divide_i_i(VALUE v, VALUE value, VALUE args[2])
+set_divide_i_i(VALUE v, VALUE value, VALUE args)
 {
-    rb_yeild(2, args[0], v);
-    rb_ary_push(args[1], v);
+    VALUE u = ((VALUE *) args)[0];
+    VALUE a = ((VALUE *) args)[1];
+
+    rb_yield_values(2, u, v);
+    rb_ary_push(a, v);
+
     return ST_CONTINUE;
 }
 
 static int
-set_divide_i(VALUE u, VALUE value, VALUE args[2])
+set_divide_i(VALUE u, VALUE value, VALUE args)
 {
+    VALUE dig = ((VALUE *) args)[0];
+    Set *set = (Set *) ((VALUE *) args)[1];
+
     VALUE a = rb_ary_new();
+
     VALUE fargs[2] = {u, a};
-    rb_funcall(args[0], rb_to_id(rb_intern("[]=")), 2, args);
-    rb_hash_foreach(((Set) args[1])->hash, set_divide_i_i, fargs);
+    rb_funcall(dig, rb_to_id(rb_intern("[]=")), 2, u, a);
+    rb_hash_foreach(set->hash, set_divide_i_i, (VALUE) fargs);
+
     return ST_CONTINUE;
 }
 
@@ -1095,30 +1104,30 @@ hash_values_i(VALUE key, VALUE value, VALUE ary)
 static VALUE
 rb_set_divide(VALUE self)
 {
-    VALUE new = set_new();
+    VALUE new = set_new(rb_class_of(self));
     VALUE ary, args[2];
     Set *set;
 
     set_no_block_given(self, rb_to_id(rb_intern("divide")));
 
     /* TODO: discover how to get the passed block to call proc_arity */
-    if (rb_proc_arity()) {
+    
+    if (rb_proc_arity() == 2) {
         /* TODO: Find a better way of calling require */
         rb_eval_string("require 'tsort'");
         VALUE dig = rb_hash_new();
         /* TODO: Find a better way of passint TSort as an argument */
-        rb_extend(dig, rb_eval_string("TSort"));
+        rb_extend_object(dig, rb_eval_string("TSort"));
         rb_define_singleton_method(dig,"tsort_each_node", tsort_each_node, 0);
         rb_define_singleton_method(dig,"tsort_each_child", tsort_each_child, 1);
 
         set = get_set_ptr(self);
-        args = {dig, (VALUE) set};
-        rb_hash_foreach(set->hash, set_divide_i, args);
+        args[0] = dig;
+        args[1] = (VALUE) set;
+        rb_hash_foreach(set->hash, set_divide_i, (VALUE) args);
 
         /* TODO: Find a better way of calling each_strongly_connected_component */
-        rb_eval_str("dig.each_strongly_connected_component { |css|
-            new.add(self.class.new(css))
-        }");
+        rb_eval_string("dig.each_strongly_connected_component { |css| new.add(self.class.new(css)) }");
         return new;
     }
 
