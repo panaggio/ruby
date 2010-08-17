@@ -760,9 +760,10 @@ rb_set_keep_if(VALUE self)
 }
 
 static int
-set_collect_bang_i(VALUE key, VALUE value, Set *set)
+set_collect_bang_i(VALUE key, VALUE value, VALUE arg)
 {
-    set_add(set, rb_yield());
+    Set *set = (Set *) arg;
+    set_add(set, rb_yield(key));
     return ST_CONTINUE;
 }
 
@@ -782,7 +783,7 @@ rb_set_collect_bang(VALUE self)
     Set *new_set = get_set_ptr(new);
     Set *self_set = get_set_ptr(self);
 
-    rb_hash_foreach(self->hash, set_collect_bang_i, new_set);
+    rb_hash_foreach(self_set->hash, set_collect_bang_i, (VALUE) new_set);
 
     set_replace(self_set, new_set);
 
