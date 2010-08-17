@@ -836,7 +836,7 @@ rb_set_select_bang(VALUE self)
 static VALUE
 rb_set_subtract(VALUE self, VALUE a_enum)
 {
-    set_do_with_enum(self, rb_set_subtract_i, 0, a_enum);
+    set_do_with_enum(self, set_subtract_i, 0, a_enum);
     return self;
 }
 
