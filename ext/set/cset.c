@@ -607,7 +607,7 @@ rb_set_proper_superset_p(VALUE self, VALUE other)
  * Returns true if the set is a subset of the given set.
  */
 static VALUE
-rb_set_proper_superset_p(VALUE self, VALUE other)
+rb_set_subset_p(VALUE self, VALUE other)
 {
     /* TODO: See if it's needed to check other type.
      *       I think get_set_ptr does the job */
@@ -627,7 +627,7 @@ rb_set_proper_superset_p(VALUE self, VALUE other)
  * Returns true if the set is a proper subset of the given set.
  */
 static VALUE
-rb_set_proper_superset_p(VALUE self, VALUE other)
+rb_set_proper_subset_p(VALUE self, VALUE other)
 {
     /* TODO: See if it's needed to check other type.
      *       I think get_set_ptr does the job */
