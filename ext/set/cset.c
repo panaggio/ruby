@@ -437,8 +437,8 @@ static int
 set_flatten_merge_i(VALUE e, VALUE value, VALUE args)
 {
     VALUE e_id;
-    Set *self_set = ((Set **) args)[0];
-    Set *seen_set = ((Set **) args)[1];
+    Set *self_set = (Set *) ((VALUE *) args)[0];
+    Set *seen_set = (Set *) ((VALUE *) args)[1];
 
     if (rb_obj_is_kind_of(e, rb_cSet) == Qtrue) {
         e_id = rb_obj_id(e);
