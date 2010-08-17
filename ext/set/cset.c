@@ -532,7 +532,7 @@ static VALUE
 rb_set_flatten_bang(VALUE self)
 {
     if (set_detect(self) != Qnil)
-        return rb_set_replace(self, rb_set_flatten);
+        return rb_set_replace(self, rb_set_flatten(self));
     return Qnil;
 }
 
