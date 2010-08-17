@@ -979,6 +979,28 @@ rb_set_eql_p(VALUE self, VALUE other)
     return rb_funcall(self_set->hash, rb_intern("eql?"), 1, other_set->hash);
 }
 
+static int
+set_classify_i(VALUE i, VALUE value, VALUE args)
+{
+    Set *set;
+    VALUE hash = ((VALUE *) args)[0];
+    VALUE self = ((VALUE *) args)[1];
+
+    VALUE x = rb_yield(i);
+    /* TODO: check if there's not better way of checking classes */
+    VALUE new = set_new(rb_class_of(self));
+
+    VALUE hash_val = rb_hash_lookup2(hash, x, Qnil);
+    if (hash_val == Qnil) {
+        rb_hash_aset(hash, x, new);
+        set = get_set_ptr(new);
+    }
+    else
+        set = get_set_ptr(hash_val);
+    set_add(set, i);
+    return ST_CONTINUE;
+}
+
 /*
  * Document-method: classify
  * call-seq: classify(&block)
@@ -1002,25 +1024,11 @@ rb_set_classify(VALUE self)
 {
     Set *set = get_set_ptr(self);
     VALUE hash = rb_hash_new();
-
-    static VALUE
-    set_classify_i(VALUE key, VALUE value)
-    {
-        VALUE x = rb_yield(key);
-        /* TODO: check if there's not better way of checking classes */
-        VALUE new = set_new(rb_class_of(self));
-        Set *new_set;
-        if (rb_hash_lookup2(hash, x, Qnil) == Qnil) {
-            rb_hash_aset(hash, x, new);
-            new_set = get_set_ptr(new);
-            set_add(new, key);
-        }
-        return ST_CONTINUE;
-    }
+    VALUE args[2] = {hash, self};
 
     set_no_block_given(self, rb_intern("classify"));
 
-    rb_hash_foreach(self->hash, set_classify_i, 0);
+    rb_hash_foreach(set->hash, set_classify_i, (VALUE) args);
 
     return hash;
 }
