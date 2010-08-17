@@ -841,13 +841,13 @@ rb_set_subtract(VALUE self, VALUE a_enum)
 }
 
 static VALUE
-set_dup(VALUE set)
+set_dup(VALUE self)
 {
     /* TODO: check if there's not better way of checking classes */
-    VALUE new = set_new(rb_class_f(self));
+    VALUE new = set_new(rb_class_of(self));
     Set *new_set  = get_set_ptr(new);
-    Set *orig_set = get_set_ptr(set);
-    set_replace(new_set, self_set);
+    Set *orig_set = get_set_ptr(self);
+    set_replace(new_set, orig_set);
 
     return new;
 }
