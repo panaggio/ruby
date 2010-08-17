@@ -707,10 +707,11 @@ rb_set_delete_bang(VALUE self, VALUE o)
 }
 
 static int
-set_delete_if_i(VALUE o, VALUE value, Set *set)
+set_delete_if_i(VALUE o, VALUE value, VALUE arg)
 {
+    Set *set = (Set *) arg;
     if (RTEST(rb_yield(o)))
-        set_delete(set->hash, o);
+        set_delete(set, o);
     return ST_CONTINUE;
 }
 
@@ -727,16 +728,17 @@ rb_set_delete_if(VALUE self)
     set_no_block_given(self, rb_intern("delete_if"));
 
     Set *set = get_set_ptr(self);
-    rb_hash_foreach(self->hash, set_delete_if_i, set);
+    rb_hash_foreach(set->hash, set_delete_if_i, (VALUE) set);
     return self;
 }
 
 static int
-set_keep_if_i(VALUE o, VALUE value, Set *set)
+set_keep_if_i(VALUE o, VALUE value, VALUE arg)
 {
+    Set *set = (Set *) arg;
     /* TODO: see if set_keep_if_i can't be merged with set_delete_if_i */
     if (RTEST(rb_yield(o)))
-        set_delete(set->hash, o);
+        set_delete(set, o);
     return ST_CONTINUE;
 }
 
@@ -753,7 +755,7 @@ rb_set_keep_if(VALUE self)
     set_no_block_given(self, rb_intern("keep_if"));
 
     Set *set = get_set_ptr(self);
-    rb_hash_foreach(self->hash, set_keep_if_i, set);
+    rb_hash_foreach(set->hash, set_keep_if_i, (VALUE) set);
     return self;
 }
 
