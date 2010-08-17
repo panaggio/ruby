@@ -863,10 +863,7 @@ static VALUE
 rb_set_union(VALUE self, VALUE a_enum)
 {
     VALUE new = set_dup(self);
-    Set *enum_set = get_set_ptr(a_enum);
-    set_merge(new_set, enum_set);
-
-    return new;
+    return rb_set_merge(new, a_enum);
 }
 
 /*
