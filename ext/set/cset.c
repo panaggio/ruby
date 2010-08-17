@@ -440,7 +440,7 @@ set_flatten_merge_i(VALUE e, VALUE value, VALUE args)
     Set *self_set = ((Set **) args)[0];
     Set *seen_set = ((Set **) args)[1];
 
-    if (rb_obj_is_kind_of(e, rb_cSet)) {
+    if (rb_obj_is_kind_of(e, rb_cSet) == Qtrue) {
         e_id = rb_obj_id(e);
         if (set_includes(seen_set, e_id))
             rb_raise(rb_eArgError, "tried to flatten recursive Set");
@@ -505,7 +505,7 @@ rb_set_flatten(VALUE self)
 static int
 set_detect_i(VALUE key, VALUE value, VALUE *return_val)
 {
-    if (rb_obj_kind_of(key, rb_cSet) != Qtrue)
+    if (rb_obj_is_kind_of(key, rb_cSet) != Qtrue)
         return ST_CONTINUE;
     *return_val = key;
     return ST_STOP;
@@ -947,10 +947,10 @@ rb_set_equal(VALUE self, VALUE other)
     other_set = get_set_ptr(other);
 
     /* TODO: Find a better way to call Hash#== */
-    if (rb_obj_is_kind_of(other, rb_class_of(self)))
+    if (rb_obj_is_kind_of(other, rb_class_of(self)) == Qtrue)
         return rb_funcall(self_set->hash, rb_intern("=="), 1, other_set->hash);
 
-    if (rb_obj_is_kind_of(other, rb_cSet) && set_size(self_set) == set_size(other_set))
+    if (rb_obj_is_kind_of(other, rb_cSet) == Qtrue && set_size(self_set) == set_size(other_set))
         return set_test_all_p(self_set, other_set);
     return Qfalse;
 }
