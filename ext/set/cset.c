@@ -667,7 +667,8 @@ rb_set_each(VALUE self)
 {
     set_no_block_given(self, rb_intern("each"));
 
-    rb_hash_foreach(self->hash, rb_set_each_i, 0);
+    Set *set = get_set_ptr(self);
+    rb_hash_foreach(set->hash, rb_set_each_i, 0);
     return self;
 }
 
