@@ -945,7 +945,7 @@ static VALUE
 rb_set_equal(VALUE self, VALUE other)
 {
     Set *self_set, *other_set;
-    if (rb_obj_equal(self) == rb_obj_equal(other))
+    if (self == other)
         return Qtrue;
 
     self_set = get_set_ptr(self);
