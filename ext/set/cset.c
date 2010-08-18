@@ -1256,5 +1256,5 @@ Init_cset(void)
     rb_define_method(rb_cSet, "pretty_print_cycle", rb_set_pretty_print_cycle, 1);
     
 
-    rb_provide("set.rb");
+    rb_provide("cset.rb");
 }
