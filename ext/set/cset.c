@@ -1223,10 +1223,10 @@ Init_cset(void)
     rb_define_method(rb_cSet, "flatten", rb_set_flatten, 0);
     rb_define_method(rb_cSet, "flatten!", rb_set_flatten_bang, 0);
     rb_define_method(rb_cSet, "include?", rb_set_include_p, 1);
-    rb_define_method(rb_cSet, "superset?", rb_set_superset_bang, 1);
-    rb_define_method(rb_cSet, "proper_superset?", rb_set_proper_superset_bang, 1);
-    rb_define_method(rb_cSet, "subset?", rb_set_subset_bang, 1);
-    rb_define_method(rb_cSet, "proper_subset?", rb_set_proper_subset_bang, 1);
+    rb_define_method(rb_cSet, "superset?", rb_set_superset_p, 1);
+    rb_define_method(rb_cSet, "proper_superset?", rb_set_proper_superset_p, 1);
+    rb_define_method(rb_cSet, "subset?", rb_set_subset_p, 1);
+    rb_define_method(rb_cSet, "proper_subset?", rb_set_proper_subset_p, 1);
     rb_define_method(rb_cSet, "each", rb_set_each, 0);
     rb_define_method(rb_cSet, "add", rb_set_add, 1);
     rb_define_method(rb_cSet, "add?", rb_set_add_bang, 1);
