@@ -1116,8 +1116,9 @@ rb_set_divide(VALUE self)
     set_no_block_given(self, rb_to_id(rb_intern("divide")));
 
     /* TODO: discover how to get the passed block to call proc_arity */
-    
-    if (rb_proc_arity() == 2) {
+    VALUE func(){return Qnil;};
+    VALUE proc = rb_proc_new(func,0);
+    if (rb_proc_arity(proc) == 2) {
         /* TODO: Find a better way of calling require */
         rb_eval_string("require 'tsort'");
         VALUE dig = rb_hash_new();
