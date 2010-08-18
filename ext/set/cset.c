@@ -224,8 +224,10 @@ rb_set_initialize(int argc, VALUE *argv, VALUE klass)
     VALUE self;// = set_alloc(klass);
     GetSetPtr(self, set);
 
-    if (argc == 0 || argc == 1)
-        set->hash = rb_hash_new();
+    if (argc == 0 || argc == 1) {
+        if (set->hash != Qnil)
+            set->hash = rb_hash_new();
+    }
     else
        rb_raise(rb_eArgError, "wrong number of arguments (%d for 1)", argc);
 
