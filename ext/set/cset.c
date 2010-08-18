@@ -89,9 +89,8 @@ set_do_with_enum(VALUE self, VALUE (*func)(ANYARGS), Set *o_set, VALUE a_enum)
             rb_funcall(a_enum, rb_intern("each_entry"), 0);
         else if (rb_respond_to(self, rb_intern("each")))
             rb_funcall(a_enum, rb_intern("each"), 0);
-        else
-            rb_raise(rb_eArgError, "value must be enumerable");
     }
+    rb_raise(rb_eArgError, "value must be enumerable");
 }
 
 /*
@@ -101,17 +100,17 @@ set_do_with_enum(VALUE self, VALUE (*func)(ANYARGS), Set *o_set, VALUE a_enum)
  * Iterates over enum and add each of it's elements (after yielded to block)
  * to the set.
  */
-static void
+static VALUE
 rb_set_do_with_enum(VALUE self, VALUE a_enum)
 {
     if (TYPE(a_enum) == T_ARRAY)
-        rb_ary_each(a_enum);
+        return rb_ary_each(a_enum);
     else if (rb_respond_to(self, rb_intern("each_entry")))
-        rb_funcall(a_enum, rb_intern("each_entry"), 0);
+        return rb_funcall(a_enum, rb_intern("each_entry"), 0);
     else if (rb_respond_to(self, rb_intern("each")))
-        rb_funcall(a_enum, rb_intern("each"), 0);
-    else
-        rb_raise(rb_eArgError, "value must be enumerable");
+        return rb_funcall(a_enum, rb_intern("each"), 0);
+    rb_raise(rb_eArgError, "value must be enumerable");
+    return Qnil;
 }
 
 static void
