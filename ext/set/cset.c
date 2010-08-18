@@ -1024,7 +1024,7 @@ set_classify_i(VALUE i, VALUE value, VALUE args)
  *             #     2001=>#<Set: {"c.rb", "d.rb", "e.rb"}>,
  *             #     2002=>#<Set: {"f.rb"}>}
  */
-static int
+static VALUE
 rb_set_classify(VALUE self)
 {
     Set *set = get_set_ptr(self);
@@ -1242,11 +1242,11 @@ Init_cset(void)
     rb_define_method(rb_cSet, "|", rb_set_union, 1);
     rb_define_method(rb_cSet, "-", rb_set_difference, 1);
     rb_define_method(rb_cSet, "&", rb_set_intersection, 1);
-    rb_define_method(rb_cSet, "^", rb_set_exclusice, 1);
+    rb_define_method(rb_cSet, "^", rb_set_exclusive, 1);
     rb_define_method(rb_cSet, "==", rb_set_equal, 1);
     rb_define_method(rb_cSet, "hash", rb_set_hash, 0);
     rb_define_method(rb_cSet, "eql?", rb_set_eql_p, 1);
-    rb_define_method(rb_cSet, "classify", rb_set_, 0);
+    rb_define_method(rb_cSet, "classify", rb_set_classify, 0);
     rb_define_method(rb_cSet, "divide", rb_set_divide, 0);
     rb_define_method(rb_cSet, "inspect", rb_set_inspect, 0);
     rb_define_method(rb_cSet, "pretty_print", rb_set_pretty_print, 1);
