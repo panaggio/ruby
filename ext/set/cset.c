@@ -217,11 +217,9 @@ set_new(VALUE klass)
  * Creates a new set.
  */
 static VALUE
-rb_set_initialize(int argc, VALUE *argv, VALUE klass)
+rb_set_initialize(int argc, VALUE *argv, VALUE self)
 {
     Set *set;
-    /* TODO: check if this allocation is necessary */
-    VALUE self;// = set_alloc(klass);
     GetSetPtr(self, set);
 
     if (argc == 0 || argc == 1) {
@@ -248,9 +246,9 @@ rb_set_initialize(int argc, VALUE *argv, VALUE klass)
  * Creates a new set containing the given objects.
  */
 static VALUE
-rb_set_s_create(int argc, VALUE *argv, VALUE klass)
+rb_set_s_create(int argc, VALUE *argv, VALUE self)
 {
-    return rb_set_initialize(argc, argv, klass);
+    return rb_set_initialize(argc, argv, self);
 }
 
 /*
@@ -1210,7 +1208,7 @@ Init_cset(void)
 
     rb_define_alloc_func(rb_cSet, set_alloc);
     rb_define_const(rb_cSet, "InspectKey", ID2SYM(rb_intern("__inspect_key__")));
-    rb_define_method(rb_cSet, "initialize", rb_set_initialize, 0);
+    rb_define_method(rb_cSet, "initialize", rb_set_initialize, -1);
     rb_define_singleton_method(rb_cSet, "[]", rb_set_s_create, -1);
     rb_define_private_method(rb_cSet, "do_with_enum", rb_set_do_with_enum, 1);
     rb_define_method(rb_cSet, "initialize_copy", rb_set_initialize_copy, 1);
