@@ -376,6 +376,12 @@ rb_set_size(VALUE self)
     return set_size(set);
 }
 
+static VALUE
+set_empty_p(Set *set)
+{
+    return RHASH_EMPTY_P(set->hash) ? Qtrue : Qfalse;
+}
+
 /*
  * Document-method: empty?
  * call-seq: empty?
@@ -386,7 +392,7 @@ static VALUE
 rb_set_empty_p(VALUE self)
 {
     Set *set = get_set_ptr(self);
-    return RHASH_EMPTY_P(set->hash) ? Qtrue : Qfalse;
+    return set_empty_p(set);
 }
 
 static int
