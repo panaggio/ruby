@@ -247,9 +247,16 @@ rb_set_initialize(int argc, VALUE *argv, VALUE self)
  * Creates a new set containing the given objects.
  */
 static VALUE
-rb_set_s_create(int argc, VALUE *argv, VALUE self)
+rb_set_s_create(int argc, VALUE *argv, VALUE klass)
 {
-    return rb_set_initialize(argc, argv, self);
+    VALUE self = set_new(klass);
+    Set *set = get_set_ptr(self);
+    int i=0;
+
+    for (i=0; i<argc; i++)
+        set_add(set, argv[i]);
+
+    return self;
 }
 
 /*
