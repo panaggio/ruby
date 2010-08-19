@@ -1117,6 +1117,7 @@ hash_values_i(VALUE key, VALUE value, VALUE ary)
 static VALUE
 rb_set_divide(VALUE self)
 {
+    return Qnil; /* FIXME */
     VALUE new = set_new(rb_class_of(self));
     VALUE ary, args[2];
     Set *set;
