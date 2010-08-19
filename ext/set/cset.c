@@ -89,8 +89,9 @@ set_do_with_enum(VALUE self, VALUE (*func)(ANYARGS), Set *o_set, VALUE a_enum)
             rb_funcall(a_enum, rb_intern("each_entry"), 0);
         else if (rb_respond_to(self, rb_intern("each")))
             rb_funcall(a_enum, rb_intern("each"), 0);
+        else
+            rb_raise(rb_eArgError, "value must be enumerable");
     }
-    rb_raise(rb_eArgError, "value must be enumerable");
 }
 
 /*
