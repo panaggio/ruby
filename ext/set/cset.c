@@ -106,9 +106,9 @@ rb_set_do_with_enum(VALUE self, VALUE a_enum)
 {
     if (TYPE(a_enum) == T_ARRAY)
         return rb_ary_each(a_enum);
-    else if (rb_respond_to(self, rb_intern("each_entry")))
+    else if (rb_respond_to(self, rb_intern("each_entry")) == Qtrue)
         return rb_funcall(a_enum, rb_intern("each_entry"), 0);
-    else if (rb_respond_to(self, rb_intern("each")))
+    else if (rb_respond_to(self, rb_intern("each")) == Qtrue)
         return rb_funcall(a_enum, rb_intern("each"), 0);
     rb_raise(rb_eArgError, "value must be enumerable");
     return Qnil;
@@ -230,7 +230,7 @@ rb_set_initialize(int argc, VALUE *argv, VALUE self)
     else
        rb_raise(rb_eArgError, "wrong number of arguments (%d for 1)", argc);
 
-    if (argc == 0) return self;
+    if (argc == 0 || argv[0]==Qnil) return self;
 
     if (rb_block_given_p())
         rb_set_do_with_enum(self, argv[0]);
@@ -408,7 +408,7 @@ static int
 set_to_a_i(VALUE key, VALUE value, VALUE ary)
 {
     if (key == Qundef) return ST_CONTINUE;
-    rb_ary_push(ary, rb_assoc_new(key, value));
+    rb_ary_push(ary, key);
     return ST_CONTINUE;
 }
 
