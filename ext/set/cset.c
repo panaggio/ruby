@@ -1209,10 +1209,26 @@ rb_set_pretty_print_cycle(VALUE self, VALUE pp)
     return rb_funcall(pp, rb_intern("text"), 1, rb_sprintf("#<%s: {%s}>", rb_class2name(rb_class_of(self)), set_empty_p(set)==Qtrue? "" : "..."));
 }
 
+static VALUE
+rb_enum_to_set(int argc, VALUE *argv, VALUE obj)
+{
+    VALUE klass = rb_cSet, *fargv = argv;
+
+    if (argc > 0) {
+        klass = argv[0];
+        /* TODO: check if fargv[0] won't make a mess */
+        fargv[0] = obj;
+    }
+    
+    return rb_set_initialize(argc, fargv, klass);
+}
+
 void
 Init_cset(void)
 {
     rb_cSet  = rb_define_class("CSet", rb_cObject);
+
+    rb_define_module_function(rb_mEnumerable, "to_set", rb_enum_to_set, -1);
 
     rb_define_alloc_func(rb_cSet, set_alloc);
     rb_define_const(rb_cSet, "InspectKey", ID2SYM(rb_intern("__inspect_key__")));
