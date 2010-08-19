@@ -85,9 +85,9 @@ set_do_with_enum(VALUE self, VALUE (*func)(ANYARGS), Set *o_set, VALUE a_enum)
     else {
         VALUE proc = rb_proc_new(func, 0);
         /* TODO: create a way to pass the Proc as a block to rb_funcall */
-        if (rb_respond_to(self, rb_intern("each_entry")))
+        if (rb_respond_to(self, rb_intern("each_entry")) == Qtrue)
             rb_funcall(a_enum, rb_intern("each_entry"), 0);
-        else if (rb_respond_to(self, rb_intern("each")))
+        else if (rb_respond_to(self, rb_intern("each")) == Qtrue)
             rb_funcall(a_enum, rb_intern("each"), 0);
         else
             rb_raise(rb_eArgError, "value must be enumerable");
@@ -1230,6 +1230,7 @@ void
 Init_cset(void)
 {
     rb_cSet  = rb_define_class("CSet", rb_cObject);
+    rb_include_module(rb_cSet, rb_mEnumerable);
 
     rb_define_module_function(rb_mEnumerable, "to_set", rb_enum_to_set, -1);
 
