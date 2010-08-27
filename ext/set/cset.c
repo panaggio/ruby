@@ -74,21 +74,19 @@ set_alloc(VALUE klass)
 }
 
 static void
-set_do_with_enum(VALUE self, VALUE (*func)(ANYARGS), Set *o_set, VALUE a_enum)
+set_do_with_enum(VALUE self, VALUE a_enum, VALUE (*func)(ANYARGS), int argc, VALUE *argv)
 {
     int i;
     Set *set = get_set_ptr(self);
 
     if (TYPE(a_enum) == T_ARRAY)
         for (i=0; i<RARRAY_LEN(a_enum); i++)
-            func(RARRAY_PTR(a_enum)[i], set, o_set);
+            func(RARRAY_PTR(a_enum)[i], (VALUE) set, argc, argv);
     else {
-        VALUE proc = rb_proc_new(func, 0);
-        /* TODO: create a way to pass the Proc as a block to rb_funcall */
         if (rb_respond_to(self, rb_intern("each_entry")) == Qtrue)
-            rb_funcall(a_enum, rb_intern("each_entry"), 0);
+            rb_block_call(a_enum, rb_intern("each_entry"), argc, argv, func, (VALUE) set);
         else if (rb_respond_to(self, rb_intern("each")) == Qtrue)
-            rb_funcall(a_enum, rb_intern("each"), 0);
+            rb_block_call(a_enum, rb_intern("each"), argc, argv, func, (VALUE) set);
         else
             rb_raise(rb_eArgError, "value must be enumerable");
     }
@@ -164,16 +162,16 @@ set_merge(Set *self, Set *other_set)
 }
 
 static VALUE
-set_subtract_i(VALUE e, Set *set, Set *o_set)
+set_subtract_i(VALUE e, VALUE set, int argc, VALUE *argv)
 {
-    set_delete(set, e);
+    set_delete((Set *) set, e);
     return ST_CONTINUE;    
 }
 
 static VALUE
-set_merge_i(VALUE e, Set *set, Set *o_set)
+set_merge_i(VALUE e, VALUE set, int argc, VALUE *argv)
 {
-    set_add(set, e);
+    set_add((Set *) set, e);
     return ST_CONTINUE;
 }
 
@@ -195,7 +193,7 @@ rb_set_merge(VALUE self, VALUE a_enum)
         set_merge(set, a_enum_set);
     }
     else
-        set_do_with_enum(self, set_merge_i, 0, a_enum);
+        set_do_with_enum(self, a_enum, set_merge_i, 0, 0);
 
     return self;
 }
@@ -209,6 +207,12 @@ set_new(VALUE klass)
     set->hash = rb_hash_new();
 
     return self;
+}
+
+static VALUE set_initialize_i(VALUE e, VALUE set, int argc, VALUE *argv)
+{
+    set_add((Set *) set, rb_yield(e));
+    return ST_CONTINUE;
 }
 
 /*
@@ -233,7 +237,7 @@ rb_set_initialize(int argc, VALUE *argv, VALUE self)
     if (argc == 0 || argv[0]==Qnil) return self;
 
     if (rb_block_given_p())
-        rb_set_do_with_enum(self, argv[0]);
+        set_do_with_enum(self, argv[0], set_initialize_i, 0, 0);
     else
         rb_set_merge(self, argv[0]);
 
@@ -658,8 +662,7 @@ rb_set_proper_subset_p(VALUE self, VALUE other)
 static VALUE
 set_no_block_given(VALUE self, ID method_id)
 {
-    if (!rb_block_given_p())
-        return rb_enumeratorize(self, ID2SYM(method_id), 0, 0);
+    return rb_enumeratorize(self, ID2SYM(method_id), 0, 0);
 }
 
 static int
@@ -680,7 +683,8 @@ rb_set_each_i(VALUE key, VALUE value)
 static VALUE
 rb_set_each(VALUE self)
 {
-    set_no_block_given(self, rb_intern("each"));
+    if (!rb_block_given_p())
+        return set_no_block_given(self, rb_intern("each"));
 
     Set *set = get_set_ptr(self);
     rb_hash_foreach(set->hash, rb_set_each_i, 0);
@@ -740,7 +744,8 @@ set_delete_if_i(VALUE o, VALUE value, VALUE arg)
 static VALUE
 rb_set_delete_if(VALUE self)
 {
-    set_no_block_given(self, rb_intern("delete_if"));
+    if (!rb_block_given_p())
+        return set_no_block_given(self, rb_intern("delete_if"));
 
     Set *set = get_set_ptr(self);
     rb_hash_foreach(set->hash, set_delete_if_i, (VALUE) set);
@@ -767,7 +772,8 @@ set_keep_if_i(VALUE o, VALUE value, VALUE arg)
 static VALUE
 rb_set_keep_if(VALUE self)
 {
-    set_no_block_given(self, rb_intern("keep_if"));
+    if (!rb_block_given_p())
+        return set_no_block_given(self, rb_intern("keep_if"));
 
     Set *set = get_set_ptr(self);
     rb_hash_foreach(set->hash, set_keep_if_i, (VALUE) set);
@@ -791,7 +797,8 @@ set_collect_bang_i(VALUE key, VALUE value, VALUE arg)
 static VALUE
 rb_set_collect_bang(VALUE self)
 {
-    set_no_block_given(self, rb_intern("collect!"));
+    if (!rb_block_given_p())
+        return set_no_block_given(self, rb_intern("collect!"));
 
     /* TODO: check if there's not better way of checking classes */
     VALUE new = set_new(rb_class_of(self));
@@ -815,7 +822,8 @@ rb_set_collect_bang(VALUE self)
 static VALUE
 rb_set_reject_bang(VALUE self)
 {
-    set_no_block_given(self, rb_intern("reject!"));
+    if (!rb_block_given_p())
+        return set_no_block_given(self, rb_intern("reject!"));
 
     Set *set = get_set_ptr(self);
     int n = set_size(set);
@@ -833,7 +841,8 @@ rb_set_reject_bang(VALUE self)
 static VALUE
 rb_set_select_bang(VALUE self)
 {
-    set_no_block_given(self, rb_intern("select!"));
+    if (!rb_block_given_p())
+        return set_no_block_given(self, rb_intern("select!"));
 
     Set *set = get_set_ptr(self);
     int n = set_size(set);
@@ -851,7 +860,7 @@ rb_set_select_bang(VALUE self)
 static VALUE
 rb_set_subtract(VALUE self, VALUE a_enum)
 {
-    set_do_with_enum(self, set_subtract_i, 0, a_enum);
+    set_do_with_enum(self, a_enum, set_subtract_i, 0, 0);
     return self;
 }
 
@@ -897,10 +906,10 @@ rb_set_difference(VALUE self, VALUE a_enum)
 }
 
 static VALUE
-rb_set_intersection_i(VALUE e, Set *set, Set *o_set)
+set_intersection_i(VALUE e, VALUE set, int argc, VALUE *argv)
 {
-    if (set_includes(set, e))
-        set_add(o_set, e);
+    if (set_includes((Set *) set, e))
+        set_add((Set *) argv[0], e);
     return ST_CONTINUE;
 }
 
@@ -917,17 +926,18 @@ rb_set_intersection(VALUE self, VALUE a_enum)
     /* TODO: check if there's not better way of checking classes */
     VALUE new = set_new(rb_class_of(self));
     Set *new_set = get_set_ptr(new);
-    set_do_with_enum(self, rb_set_intersection_i, new_set, a_enum);
+    set_do_with_enum(self, a_enum, set_intersection_i, 1, (VALUE *) &new_set);
     return new;
 }
 
 static VALUE
-rb_set_exclusive_i(VALUE e, Set *set, Set *o_set)
+set_exclusive_i(VALUE e, VALUE set, int argc, VALUE *argv)
 {
-    if (set_includes(o_set, e) == Qtrue)
-        set_delete(o_set, e);
+    Set *oset = (Set *) argv[0];
+    if (set_includes(oset, e) == Qtrue)
+        set_delete(oset, e);
     else
-        set_add(o_set, e);
+        set_add(oset, e);
     return ST_CONTINUE;
 }
 
@@ -945,7 +955,7 @@ rb_set_exclusive(VALUE self, VALUE a_enum)
     /* TODO: check if there's not better way of checking classes */
     VALUE new = set_new(rb_class_of(self));
     Set *new_set = get_set_ptr(new);
-    set_do_with_enum(self, rb_set_exclusive_i, new_set, a_enum);
+    set_do_with_enum(self, a_enum, set_exclusive_i, 1, (VALUE *) &new_set);
     return new;
 }
 
@@ -1041,7 +1051,8 @@ rb_set_classify(VALUE self)
     VALUE hash = rb_hash_new();
     VALUE args[2] = {hash, self};
 
-    set_no_block_given(self, rb_intern("classify"));
+    if (!rb_block_given_p())
+        return set_no_block_given(self, rb_intern("classify"));
 
     rb_hash_foreach(set->hash, set_classify_i, (VALUE) args);
 
@@ -1124,7 +1135,8 @@ rb_set_divide(VALUE self)
     VALUE ary, args[2];
     Set *set;
 
-    set_no_block_given(self, rb_to_id(rb_intern("divide")));
+    if (!rb_block_given_p())
+        return set_no_block_given(self, rb_to_id(rb_intern("divide")));
 
     /* TODO: discover how to get the passed block to call proc_arity */
     VALUE func(){return Qnil;};
