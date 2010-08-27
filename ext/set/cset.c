@@ -1175,8 +1175,9 @@ set_inspect_i(VALUE args)
 
     rb_ary_push(ids, rb_obj_id(self));
 
-    inspect_str = rb_str_substr(rb_ary_to_s(rb_set_to_a(self)), 1, -2);
-    return rb_sprintf("#<%s: {%s}>", rb_class2name(rb_class_of(self)), StringValuePtr(inspect_str));
+    inspect_str = rb_ary_to_s(rb_set_to_a(self));
+    inspect_str = rb_str_substr(inspect_str, 1, rb_str_strlen(inspect_str)-2);
+    return rb_sprintf("#<%s: {%s}>", rb_obj_classname(self), RSTRING_PTR(inspect_str));
 }
 
 /*
@@ -1200,7 +1201,7 @@ rb_set_inspect(VALUE self)
     }
 
     if (rb_ary_includes(ids, rb_obj_id(self)))
-        return rb_sprintf("#<%s: {...}>", rb_class2name(rb_class_of(self)));
+        return rb_sprintf("#<%s: {...}>", rb_obj_classname(self));
 
     args[0] = self;
     args[1] = ids;
