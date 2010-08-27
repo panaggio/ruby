@@ -1212,27 +1212,39 @@ rb_set_pretty_print_cycle(VALUE self, VALUE pp)
     return rb_funcall(pp, rb_intern("text"), 1, rb_sprintf("#<%s: {%s}>", rb_class2name(rb_class_of(self)), set_empty_p(set)==Qtrue? "" : "..."));
 }
 
+# ifndef MAX
+#define MAX(i,j) (i>j ? i : j)
+# endif
 static VALUE
 rb_enum_to_set(int argc, VALUE *argv, VALUE obj)
 {
-    VALUE klass = rb_cSet, *fargv = argv;
+    VALUE klass = rb_cSet;
+    /* TODO: set a good value to fargs */
+    VALUE self, fargv[100];
+    int i, fargc;
 
-    if (argc > 0) {
+    fargc = MAX(1,argc);
+    for (i=0; i<argc; i++)
+        fargv[i] = argv[i];
+
+    if (argc > 0)
         klass = argv[0];
-        /* TODO: check if fargv[0] won't make a mess */
-        fargv[0] = obj;
-    }
+
+    fargv[0] = obj;
     
-    return rb_set_initialize(argc, fargv, klass);
+    /* TODO: implement in a generic way to accomodate other classes */
+    self = set_alloc(klass);
+    return rb_set_initialize(fargc, fargv, self);
 }
 
 void
 Init_cset(void)
 {
     rb_cSet  = rb_define_class("CSet", rb_cObject);
-    rb_include_module(rb_cSet, rb_mEnumerable);
 
-    rb_define_module_function(rb_mEnumerable, "to_set", rb_enum_to_set, -1);
+    rb_define_method(rb_mEnumerable, "to_set", rb_enum_to_set, -1);
+
+    rb_include_module(rb_cSet, rb_mEnumerable);
 
     rb_define_alloc_func(rb_cSet, set_alloc);
     rb_define_const(rb_cSet, "InspectKey", ID2SYM(rb_intern("__inspect_key__")));
