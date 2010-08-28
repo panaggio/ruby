@@ -1,6 +1,9 @@
 #include <ruby.h>
 
+RUBY_EXTERN size_t rb_ary_memsize(VALUE);
+
 VALUE rb_cSet;
+VALUE rb_cSortedSet;
 
 /*
  *  Document-class: Set
@@ -74,18 +77,17 @@ set_alloc(VALUE klass)
 }
 
 static void
-set_do_with_enum(VALUE self, VALUE a_enum, VALUE (*func)(ANYARGS), int argc, VALUE *argv)
+set_do_with_enum(Set *set, VALUE a_enum, VALUE (*func)(ANYARGS), int argc, VALUE *argv)
 {
     int i;
-    Set *set = get_set_ptr(self);
 
     if (TYPE(a_enum) == T_ARRAY)
         for (i=0; i<RARRAY_LEN(a_enum); i++)
             func(RARRAY_PTR(a_enum)[i], (VALUE) set, argc, argv);
     else {
-        if (rb_respond_to(self, rb_intern("each_entry")) == Qtrue)
+        if (rb_respond_to(a_enum, rb_intern("each_entry")))
             rb_block_call(a_enum, rb_intern("each_entry"), argc, argv, func, (VALUE) set);
-        else if (rb_respond_to(self, rb_intern("each")) == Qtrue)
+        else if (rb_respond_to(a_enum, rb_intern("each")))
             rb_block_call(a_enum, rb_intern("each"), argc, argv, func, (VALUE) set);
         else
             rb_raise(rb_eArgError, "value must be enumerable");
@@ -104,9 +106,9 @@ rb_set_do_with_enum(VALUE self, VALUE a_enum)
 {
     if (TYPE(a_enum) == T_ARRAY)
         return rb_ary_each(a_enum);
-    else if (rb_respond_to(self, rb_intern("each_entry")) == Qtrue)
+    else if (rb_respond_to(a_enum, rb_intern("each_entry")))
         return rb_funcall(a_enum, rb_intern("each_entry"), 0);
-    else if (rb_respond_to(self, rb_intern("each")) == Qtrue)
+    else if (rb_respond_to(a_enum, rb_intern("each")))
         return rb_funcall(a_enum, rb_intern("each"), 0);
     rb_raise(rb_eArgError, "value must be enumerable");
     return Qnil;
@@ -155,7 +157,7 @@ rb_set_delete(VALUE self, VALUE o)
 }
 
 static void
-set_merge(Set *self, Set *other_set)
+sets_merge(Set *self, Set *other_set)
 {
     /* TODO find a better way of running Hash#update */
     rb_funcall(self->hash, rb_intern("update"), 1, other_set->hash);
@@ -175,6 +177,17 @@ set_merge_i(VALUE e, VALUE set, int argc, VALUE *argv)
     return ST_CONTINUE;
 }
 
+static void
+set_merge(Set *set, VALUE a_enum)
+{
+    if (rb_class_of(a_enum) == rb_cSet) {
+        Set *a_enum_set = get_set_ptr(a_enum);
+        sets_merge(set, a_enum_set);
+    }
+    else
+        set_do_with_enum(set, a_enum, set_merge_i, 0, 0);
+}
+
 /*
  * Document-method: merge
  * call-seq: merge(enum)
@@ -185,16 +198,7 @@ set_merge_i(VALUE e, VALUE set, int argc, VALUE *argv)
 static VALUE
 rb_set_merge(VALUE self, VALUE a_enum)
 {
-    Set *set = get_set_ptr(self);
-    Set *a_enum_set;
-    /* TODO: check if there's not a better way of checking classes */
-    if (rb_class_of(self) == rb_class_of(a_enum)){
-        a_enum_set = get_set_ptr(a_enum);
-        set_merge(set, a_enum_set);
-    }
-    else
-        set_do_with_enum(self, a_enum, set_merge_i, 0, 0);
-
+    set_merge(get_set_ptr(self), a_enum);
     return self;
 }
 
@@ -209,10 +213,29 @@ set_new(VALUE klass)
     return self;
 }
 
-static VALUE set_initialize_i(VALUE e, VALUE set, int argc, VALUE *argv)
+static VALUE
+set_initialize_i(VALUE e, VALUE set, int argc, VALUE *argv)
 {
     set_add((Set *) set, rb_yield(e));
     return ST_CONTINUE;
+}
+
+static void
+set_initialize(int argc, VALUE *argv, Set *set)
+{
+    if (argc == 0 || argc == 1) {
+        if (set->hash != Qnil)
+            set->hash = rb_hash_new();
+    }
+    else
+       rb_raise(rb_eArgError, "wrong number of arguments (%d for 1)", argc);
+
+    if (argc && argv[0]!=Qnil) {
+        if (rb_block_given_p())
+            set_do_with_enum(set, argv[0], set_initialize_i, 0, 0);
+        else
+            set_merge(set, argv[0]);
+    }
 }
 
 /*
@@ -226,21 +249,7 @@ rb_set_initialize(int argc, VALUE *argv, VALUE self)
 {
     Set *set;
     GetSetPtr(self, set);
-
-    if (argc == 0 || argc == 1) {
-        if (set->hash != Qnil)
-            set->hash = rb_hash_new();
-    }
-    else
-       rb_raise(rb_eArgError, "wrong number of arguments (%d for 1)", argc);
-
-    if (argc == 0 || argv[0]==Qnil) return self;
-
-    if (rb_block_given_p())
-        set_do_with_enum(self, argv[0], set_initialize_i, 0, 0);
-    else
-        rb_set_merge(self, argv[0]);
-
+    set_initialize(argc, argv, set);
     return self;
 }
 
@@ -284,9 +293,22 @@ rb_set_clear(VALUE self)
 }
 
 static void
-set_replace(Set *dest, Set *orig)
+sets_replace(Set *dest, Set *orig)
 {
     dest->hash = rb_hash_dup(orig->hash);
+}
+
+static void
+set_replace(Set *set, VALUE a_enum)
+{
+    if (rb_class_of(a_enum) == rb_cSet) {
+        Set *a_enum_set = get_set_ptr(a_enum);
+        sets_replace(set, a_enum_set);
+    }
+    else {
+        set_clear(set);
+        set_merge(set, a_enum);
+    }
 }
 
 /*
@@ -299,17 +321,7 @@ set_replace(Set *dest, Set *orig)
 static VALUE
 rb_set_replace(VALUE self, VALUE a_enum)
 {
-    Set *set = get_set_ptr(self), *a_enum_set;
-    /* TODO: check if there's not better way of checking classes */
-    if (rb_class_of(self) == rb_class_of(a_enum)) {
-        a_enum_set = get_set_ptr(a_enum);
-        set_replace(set, a_enum_set);
-    }
-    else {
-        rb_set_clear(self);
-        rb_set_merge(self,a_enum);
-    }
-
+    set_replace(get_set_ptr(self), a_enum);
     return self;
 }
 
@@ -324,7 +336,7 @@ rb_set_initialize_copy(VALUE self, VALUE orig)
 {
     Set *set = get_set_ptr(self);
     Set *origset = get_set_ptr(orig);
-    set_replace(set, origset);
+    sets_replace(set, origset);
     return self;
 }
 
@@ -421,6 +433,16 @@ set_to_a_i(VALUE key, VALUE value, VALUE ary)
     return ST_CONTINUE;
 }
 
+static VALUE
+set_to_a(Set *set)
+{
+    VALUE ary = rb_ary_new();
+    rb_hash_foreach(set->hash, set_to_a_i, ary);
+    OBJ_INFECT(ary, set->hash);
+
+    return ary;
+}
+
 /*
  * Document-method: to_a
  * call-seq: to_a
@@ -430,12 +452,7 @@ set_to_a_i(VALUE key, VALUE value, VALUE ary)
 static VALUE
 rb_set_to_a(VALUE self)
 {
-    Set *set = get_set_ptr(self);
-    VALUE ary = rb_ary_new();
-    rb_hash_foreach(set->hash, set_to_a_i, ary);
-    OBJ_INFECT(ary, set->hash);
-
-    return ary;
+    return set_to_a(get_set_ptr(self));
 }
 
 static VALUE
@@ -739,6 +756,12 @@ set_delete_if_i(VALUE o, VALUE value, VALUE arg)
     return ST_CONTINUE;
 }
 
+static void
+set_delete_if(Set *set)
+{
+    rb_hash_foreach(set->hash, set_delete_if_i, (VALUE) set);
+}
+
 /*
  * Document-method: delete_if 
  * call-seq: delete_if(&block)
@@ -753,7 +776,7 @@ rb_set_delete_if(VALUE self)
         return set_no_block_given(self, rb_intern("delete_if"));
 
     Set *set = get_set_ptr(self);
-    rb_hash_foreach(set->hash, set_delete_if_i, (VALUE) set);
+    set_delete_if(set);
     return self;
 }
 
@@ -765,6 +788,12 @@ set_keep_if_i(VALUE o, VALUE value, VALUE arg)
     if (RTEST(rb_yield(o)))
         set_delete(set, o);
     return ST_CONTINUE;
+}
+
+static void
+set_keep_if(Set *set)
+{
+    rb_hash_foreach(set->hash, set_keep_if_i, (VALUE) set);
 }
 
 /*
@@ -781,7 +810,7 @@ rb_set_keep_if(VALUE self)
         return set_no_block_given(self, rb_intern("keep_if"));
 
     Set *set = get_set_ptr(self);
-    rb_hash_foreach(set->hash, set_keep_if_i, (VALUE) set);
+    set_keep_if(set);
     return self;
 }
 
@@ -812,7 +841,7 @@ rb_set_collect_bang(VALUE self)
 
     rb_hash_foreach(self_set->hash, set_collect_bang_i, (VALUE) new_set);
 
-    set_replace(self_set, new_set);
+    sets_replace(self_set, new_set);
 
     return self;
 }
@@ -865,7 +894,7 @@ rb_set_select_bang(VALUE self)
 static VALUE
 rb_set_subtract(VALUE self, VALUE a_enum)
 {
-    set_do_with_enum(self, a_enum, set_subtract_i, 0, 0);
+    set_do_with_enum(get_set_ptr(self), a_enum, set_subtract_i, 0, 0);
     return self;
 }
 
@@ -876,7 +905,7 @@ set_dup(VALUE self)
     VALUE new = set_new(rb_class_of(self));
     Set *new_set  = get_set_ptr(new);
     Set *orig_set = get_set_ptr(self);
-    set_replace(new_set, orig_set);
+    sets_replace(new_set, orig_set);
 
     return new;
 }
@@ -931,7 +960,7 @@ rb_set_intersection(VALUE self, VALUE a_enum)
     /* TODO: check if there's not better way of checking classes */
     VALUE new = set_new(rb_class_of(self));
     Set *new_set = get_set_ptr(new);
-    set_do_with_enum(self, a_enum, set_intersection_i, 1, (VALUE *) &new_set);
+    set_do_with_enum(get_set_ptr(self), a_enum, set_intersection_i, 1, (VALUE *) &new_set);
     return new;
 }
 
@@ -960,7 +989,7 @@ rb_set_exclusive(VALUE self, VALUE a_enum)
     /* TODO: check if there's not better way of checking classes */
     VALUE new = set_new(rb_class_of(self));
     Set *new_set = get_set_ptr(new);
-    set_do_with_enum(self, a_enum, set_exclusive_i, 1, (VALUE *) &new_set);
+    set_do_with_enum(get_set_ptr(self), a_enum, set_exclusive_i, 1, (VALUE *) &new_set);
     return new;
 }
 
@@ -1230,125 +1259,227 @@ rb_set_pretty_print_cycle(VALUE self, VALUE pp)
     return rb_funcall(pp, rb_intern("text"), 1, rb_sprintf("#<%s: {%s}>", rb_class2name(rb_class_of(self)), set_empty_p(set)==Qtrue? "" : "..."));
 }
 
+/* FIXME: don't know how to do it by now
 static VALUE
-rb_rbtree_sset_initialize(int argc, VALUE *argv, VALUE self) {
-    /* TODO: finish me */
-    /* RBTreeSortedSet *set = GetRBTreeSSetPtr(self); */
-    /* sset->hash = RBTree.new; */
+rb_rbtree_sset_initialize(int argc, VALUE *argv, VALUE self)
+{
+    Set *set = GetSetPtr(self);
+    set->hash = rbtree_s_create(0, 0, RBTree);
     return rb_set_initialize(argc, argv, self);
 }
 
 static VALUE
-rb_rbtree_sset_add(VALUE self, VALUE o) {
+rb_rbtree_sset_add(VALUE self, VALUE o)
+{
     if (!rb_respond_to(o, rb_intern("<=>")))
         rb_raise(rb_eArgError, "value must respond to <=>");
 
     return rb_set_add(self, o);
 }
+*/
 
-static VALUE
-rb_sset_initialize(int argc, VALUE *argv, VALUE self) {
-    SortedSet *set = GetSSetPtr(self);
-    set->keys = Qnil;
-    return rb_set_initialize(argc, argv, self);
+/*
+ * Document-class: SortedSet
+ *
+ * SortedSet implements a Set that guarantees that it's element are
+ * yielded in sorted order (according to the return values of their
+ * #<=> methods) when iterating over them.
+ *
+ * All elements that are added to a SortedSet must respond to the <=>
+ * method for comparison.
+ *
+ * Also, all elements must be <em>mutually comparable</em>: <tt>el1 <=>
+ * el2</tt> must not return <tt>nil</tt> for any elements <tt>el1</tt>
+ * and <tt>el2</tt>, else an ArgumentError will be raised when
+ * iterating over the SortedSet.
+ *
+ * == Example
+ *
+ *   require "set"
+ *
+ *   set = SortedSet.new([2, 1, 5, 6, 4, 5, 3, 3, 3])
+ *   ary = []
+ *
+ *   set.each do |obj|
+ *     ary << obj
+ *   end
+ *
+ *   p ary # => [1, 2, 3, 4, 5, 6]
+ *
+ *   set2 = SortedSet.new([1, 2, "3"])
+ *   set2.each { |obj| }
+ *   # => raises ArgumentError: comparison of Fixnum with String failed
+ */
+
+typedef struct {
+    Set set_;
+    VALUE keys;
+} SortedSet;
+
+static void
+sset_mark(void *ptr)
+{
+    SortedSet *sset = ptr;
+    set_mark(&sset->set_);
+    rb_gc_mark(sset->keys);
+}
+
+#define sset_free RUBY_TYPED_DEFAULT_FREE
+
+static size_t
+sset_memsize(const void *ptr)
+{
+    size_t size = 0;
+    if (ptr) {
+        const SortedSet *sset = ptr;
+        size = sizeof(SortedSet) - sizeof(Set);
+        size += set_memsize(&sset->set_);
+        size += rb_ary_memsize(sset->keys);
+    }
+    return size;
+}
+
+static const rb_data_type_t sset_data_type = {
+    "sortedset",
+    {sset_mark, sset_free, sset_memsize,},
+};
+
+#define GetSortedSetPtr(obj, tobj) \
+    TypedData_Get_Struct(obj, SortedSet, &sset_data_type, tobj)
+
+static SortedSet *
+get_sset_ptr(VALUE self)
+{
+    SortedSet *sset;
+    GetSortedSetPtr(self, sset);
+    if (!sset->keys || !sset->set_.hash) {
+       rb_raise(rb_eArgError, "uninitialized SortedSet");
+    }
+    return sset;
 }
 
 static VALUE
-rb_sset_clear(VALUE self) {
-    SortedSet *set = GetSSetPtr(self);
-    set->keys = Qnil;
-    set_clear(set);
-    return set_clear(set);
+sset_alloc(VALUE klass)
+{
+    SortedSet *sset;
+    return TypedData_Make_Struct(klass, SortedSet, &sset_data_type, sset);
 }
 
 static VALUE
-rb_sset_replace(VALUE self, VALUE a_enum) {
-    SortedSet *set = GetSSetPtr(self);
-    set->keys = Qnil;
-    set_replace(set, a_enum);
+rb_sset_initialize(int argc, VALUE *argv, VALUE self)
+{
+    SortedSet *sset;
+    GetSortedSetPtr(self, sset);
+    sset->keys = Qnil;
+    set_initialize(argc, argv, &sset->set_);
     return self;
 }
 
 static VALUE
-rb_sset_add(VALUE self, VALUE o) {
-    SortedSet *set = GetSSetPtr(self);
+rb_sset_clear(VALUE self)
+{
+    SortedSet *sset = get_sset_ptr(self);
+    sset->keys = Qnil;
+    set_clear(&sset->set_);
+    return self;
+}
+
+static VALUE
+rb_sset_replace(VALUE self, VALUE a_enum)
+{
+    SortedSet *sset = get_sset_ptr(self);
+    sset->keys = Qnil;
+    set_replace(&sset->set_, a_enum);
+    return self;
+}
+
+static VALUE
+rb_sset_add(VALUE self, VALUE o)
+{
+    SortedSet *sset = get_sset_ptr(self);
     if (!rb_respond_to(o, rb_intern("<=>")))
         rb_raise(rb_eArgError, "value must respond to <=>");
 
-    set->keys = Qnil;
-    set_add(set, o);
+    sset->keys = Qnil;
+    set_add(&sset->set_, o);
     return self;
 }
 
 static VALUE
-rb_sset_delete(VALUE self, VALUE o) {
-    SortedSet *set = GetSSetPtr(self);
-    set->keys = Qnil;
-    set_delete(set, o);
+rb_sset_delete(VALUE self, VALUE o)
+{
+    SortedSet *sset = get_sset_ptr(self);
+    sset->keys = Qnil;
+    set_delete(&sset->set_, o);
     return self;
 }
 
 static VALUE
-rb_sset_delete_if(VALUE self) {
-    SortedSet *set = GetSSetPtr(self);
+rb_sset_delete_if(VALUE self)
+{
+    SortedSet *sset = get_sset_ptr(self);
     int n;
 
     if (!rb_block_given_p())
         return set_no_block_given(self, rb_intern("delete_if"));
 
-    n = set_size(set);
-    rb_set_delete_if(self);
-    if (set_size(set) != n)
-        set->keys = Qnil;
+    n = set_size(&sset->set_);
+    set_delete_if(&sset->set_);
+    if (set_size(&sset->set_) != n)
+        sset->keys = Qnil;
 
     return self;
 }
 
 static VALUE
-rb_sset_keep_if(VALUE self) {
-    SortedSet *set = GetSSetPtr(self);
+rb_sset_keep_if(VALUE self)
+{
+    SortedSet *sset = get_sset_ptr(self);
     int n;
 
     if (!rb_block_given_p())
         return set_no_block_given(self, rb_intern("keep_if"));
 
-    n = set_size(set);
-    rb_set_keep_if(self);
-    if (set_size(set) != n)
-        set->keys = Qnil;
+    n = set_size(&sset->set_);
+    set_keep_if(&sset->set_);
+    if (set_size(&sset->set_) != n)
+        sset->keys = Qnil;
 
     return self;
 }
 
 static VALUE
-rb_sset_merge(VALUE self, VALUE a_enum) {
-    SortedSet *set = GetSSetPtr(self);
-    set->keys = Qnil;
-    set_merge(set,a_enum);
+rb_sset_merge(VALUE self, VALUE a_enum)
+{
+    SortedSet *sset = get_sset_ptr(self);
+    sset->keys = Qnil;
+    set_merge(&sset->set_, a_enum);
     return self;
 }
 
-static void sset_to_a(SortedSet *set) {
-    if (set->keys == Qnil)
-        set->keys = rb_ary_sort_bang(rb_set_to_a(self));
+static void sset_to_a(SortedSet *sset)
+{
+    if (sset->keys == Qnil)
+        sset->keys = rb_ary_sort_bang(set_to_a(&sset->set_));
 }
 
 static VALUE
 rb_sset_to_a(VALUE self) {
-    SortedSet *set = GetSSetPtr(self);
-    sset_to_a(set);
-    return set->keys;
+    SortedSet *sset = get_sset_ptr(self);
+    sset_to_a(sset);
+    return sset->keys;
 }
 
 static VALUE
 rb_sset_each(VALUE self) {
+    SortedSet *sset = get_sset_ptr(self);
     int i;
     if (!rb_block_given_p())
         return set_no_block_given(self, rb_intern("each"));
 
-    sset_to_a(set);
-    for (i=0; i<RARRAY_LEN(set->keys); i++)
-        rb_yield(RARRAY_PTR(set->keys)[i]);
+    sset_to_a(sset);
+    for (i=0; i<RARRAY_LEN(sset->keys); i++)
+        rb_yield(RARRAY_PTR(sset->keys)[i]);
 
     return self;
 }
