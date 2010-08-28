@@ -263,6 +263,12 @@ rb_set_s_create(int argc, VALUE *argv, VALUE klass)
     return self;
 }
 
+static void
+set_clear(Set *set)
+{
+    set->hash = rb_hash_new();
+}
+
 /*
  * Document-method: clear
  * call-seq: clear
@@ -273,8 +279,7 @@ static VALUE
 rb_set_clear(VALUE self)
 {
     Set *set = get_set_ptr(self);
-    /* TODO find a better way of running Hash#clear than copying code */
-    rb_funcall(set->hash, rb_intern("clear"), 0);
+    set_clear(set);
     return self;
 }
 
@@ -1223,6 +1228,129 @@ rb_set_pretty_print_cycle(VALUE self, VALUE pp)
     /* TODO: Find a better way of calling PrettyPrint#text */
     Set *set = get_set_ptr(self);
     return rb_funcall(pp, rb_intern("text"), 1, rb_sprintf("#<%s: {%s}>", rb_class2name(rb_class_of(self)), set_empty_p(set)==Qtrue? "" : "..."));
+}
+
+static VALUE
+rb_rbtree_sset_initialize(int argc, VALUE *argv, VALUE self) {
+    /* TODO: finish me */
+    /* RBTreeSortedSet *set = GetRBTreeSSetPtr(self); */
+    /* sset->hash = RBTree.new; */
+    return rb_set_initialize(argc, argv, self);
+}
+
+static VALUE
+rb_rbtree_sset_add(VALUE self, VALUE o) {
+    if (!rb_respond_to(o, rb_intern("<=>")))
+        rb_raise(rb_eArgError, "value must respond to <=>");
+
+    return rb_set_add(self, o);
+}
+
+static VALUE
+rb_sset_initialize(int argc, VALUE *argv, VALUE self) {
+    SortedSet *set = GetSSetPtr(self);
+    set->keys = Qnil;
+    return rb_set_initialize(argc, argv, self);
+}
+
+static VALUE
+rb_sset_clear(VALUE self) {
+    SortedSet *set = GetSSetPtr(self);
+    set->keys = Qnil;
+    set_clear(set);
+    return set_clear(set);
+}
+
+static VALUE
+rb_sset_replace(VALUE self, VALUE a_enum) {
+    SortedSet *set = GetSSetPtr(self);
+    set->keys = Qnil;
+    set_replace(set, a_enum);
+    return self;
+}
+
+static VALUE
+rb_sset_add(VALUE self, VALUE o) {
+    SortedSet *set = GetSSetPtr(self);
+    if (!rb_respond_to(o, rb_intern("<=>")))
+        rb_raise(rb_eArgError, "value must respond to <=>");
+
+    set->keys = Qnil;
+    set_add(set, o);
+    return self;
+}
+
+static VALUE
+rb_sset_delete(VALUE self, VALUE o) {
+    SortedSet *set = GetSSetPtr(self);
+    set->keys = Qnil;
+    set_delete(set, o);
+    return self;
+}
+
+static VALUE
+rb_sset_delete_if(VALUE self) {
+    SortedSet *set = GetSSetPtr(self);
+    int n;
+
+    if (!rb_block_given_p())
+        return set_no_block_given(self, rb_intern("delete_if"));
+
+    n = set_size(set);
+    rb_set_delete_if(self);
+    if (set_size(set) != n)
+        set->keys = Qnil;
+
+    return self;
+}
+
+static VALUE
+rb_sset_keep_if(VALUE self) {
+    SortedSet *set = GetSSetPtr(self);
+    int n;
+
+    if (!rb_block_given_p())
+        return set_no_block_given(self, rb_intern("keep_if"));
+
+    n = set_size(set);
+    rb_set_keep_if(self);
+    if (set_size(set) != n)
+        set->keys = Qnil;
+
+    return self;
+}
+
+static VALUE
+rb_sset_merge(VALUE self, VALUE a_enum) {
+    SortedSet *set = GetSSetPtr(self);
+    set->keys = Qnil;
+    set_merge(set,a_enum);
+    return self;
+}
+
+static void sset_to_a(SortedSet *set) {
+    if (set->keys == Qnil)
+        set->keys = rb_ary_sort_bang(rb_set_to_a(self));
+}
+
+static VALUE
+rb_sset_to_a(VALUE self) {
+    SortedSet *set = GetSSetPtr(self);
+    sset_to_a(set);
+    return set->keys;
+}
+
+static VALUE
+rb_sset_each(VALUE self) {
+    int i;
+    if (!rb_block_given_p())
+        return set_no_block_given(self, rb_intern("each"));
+
+    sset_to_a(set);
+    for (i=0; i<RARRAY_LEN(set->keys); i++)
+        rb_yield(RARRAY_PTR(set->keys)[i]);
+
+    return self;
 }
 
 # ifndef MAX
