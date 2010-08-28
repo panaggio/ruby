@@ -389,7 +389,7 @@ static int
 set_size(Set *set)
 {
     if (!RHASH(set->hash)->ntbl)
-        return INT2FIX(0);
+        return 0;
     return RHASH(set->hash)->ntbl->num_entries;
 }
 
