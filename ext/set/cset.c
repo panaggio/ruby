@@ -1512,7 +1512,8 @@ rb_enum_to_set(int argc, VALUE *argv, VALUE obj)
 void
 Init_cset(void)
 {
-    rb_cSet  = rb_define_class("CSet", rb_cObject);
+    rb_cSet = rb_define_class("CSet", rb_cObject);
+    rb_cSortedSet = rb_define_class("SortedCSet", rb_cSet);
 
     rb_define_method(rb_mEnumerable, "to_set", rb_enum_to_set, -1);
 
@@ -1564,7 +1565,17 @@ Init_cset(void)
     rb_define_method(rb_cSet, "inspect", rb_set_inspect, 0);
     rb_define_method(rb_cSet, "pretty_print", rb_set_pretty_print, 1);
     rb_define_method(rb_cSet, "pretty_print_cycle", rb_set_pretty_print_cycle, 1);
-    
+
+    rb_define_method(rb_cSortedSet, "initialize", rb_sset_initialize, -1);
+    rb_define_method(rb_cSortedSet, "clear", rb_sset_clear, 0);
+    rb_define_method(rb_cSortedSet, "replace", rb_sset_replace, 1);
+    rb_define_method(rb_cSortedSet, "add", rb_sset_add, 1);
+    rb_define_method(rb_cSortedSet, "delete", rb_sset_delete, 1);
+    rb_define_method(rb_cSortedSet, "delete_if", rb_sset_delete_if, 0);
+    rb_define_method(rb_cSortedSet, "keep_if", rb_sset_keep_if, 0);
+    rb_define_method(rb_cSortedSet, "merge", rb_sset_merge, 1);
+    rb_define_method(rb_cSortedSet, "to_a", rb_sset_to_a, 0);
+    rb_define_method(rb_cSortedSet, "each", rb_sset_each, 0);
 
     rb_provide("cset.rb");
 }
