@@ -368,12 +368,12 @@ rb_set_untaint(VALUE self)
     return self;
 }
 
-static VALUE
+static int
 set_size(Set *set)
 {
     if (!RHASH(set->hash)->ntbl)
         return INT2FIX(0);
-    return INT2FIX(RHASH(set->hash)->ntbl->num_entries);
+    return RHASH(set->hash)->ntbl->num_entries;
 }
 
 /*
@@ -386,7 +386,7 @@ static VALUE
 rb_set_size(VALUE self)
 {
     Set *set = get_set_ptr(self);
-    return set_size(set);
+    return INT2FIX(set_size(set));
 }
 
 static VALUE
