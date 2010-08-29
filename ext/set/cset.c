@@ -26,6 +26,7 @@ VALUE rb_cSortedSet;
 
 typedef struct {
     VALUE hash;
+    VALUE keys;
 } Set;
 
 static void
@@ -33,6 +34,7 @@ set_mark(void *ptr)
 {
     Set *set = ptr;
     rb_gc_mark(set->hash);
+    rb_gc_mark(set->keys);
 }
 
 #define set_free RUBY_TYPED_DEFAULT_FREE
@@ -42,10 +44,11 @@ set_memsize(const void *ptr)
 {
     size_t size = 0;
     if (ptr) {
-        /* const Set *set = ptr; */
+        const Set *set = ptr;
         size = sizeof(Set);
         /* TODO: check a way to calculate hash memsize */
         /* size += rb_hash_memsize(set->hash); */
+        size += rb_ary_memsize(set->keys);
     }
     return size;
 }
@@ -64,7 +67,7 @@ get_set_ptr(VALUE self)
     Set *set;
     GetSetPtr(self, set);
     if (!set->hash) {
-       rb_raise(rb_eArgError, "uninitialized Set");
+       rb_raise(rb_eArgError, "uninitialized %s", rb_obj_classname(self));
     }
     return set;
 }
@@ -1213,7 +1216,10 @@ set_inspect_i(VALUE args)
 
     rb_ary_push(ids, rb_obj_id(self));
 
-    inspect_str = rb_ary_to_s(rb_set_to_a(self));
+    if (rb_class_of(self) == rb_cSet)
+        inspect_str = rb_ary_to_s(rb_set_to_a(self));
+    else if (rb_class_of(self) == rb_cSortedSet)
+        inspect_str = rb_ary_to_s(rb_sset_to_a(self));
     inspect_str = rb_str_substr(inspect_str, 1, rb_str_strlen(inspect_str)-2);
     return rb_sprintf("#<%s: {%s}>", rb_obj_classname(self), RSTRING_PTR(inspect_str));
 }
@@ -1315,33 +1321,11 @@ rb_rbtree_sset_add(VALUE self, VALUE o)
  *   # => raises ArgumentError: comparison of Fixnum with String failed
  */
 
-typedef struct {
-    Set set_;
-    VALUE keys;
-} SortedSet;
+#define SortedSet Set
 
-static void
-sset_mark(void *ptr)
-{
-    SortedSet *sset = ptr;
-    set_mark(&sset->set_);
-    rb_gc_mark(sset->keys);
-}
-
-#define sset_free RUBY_TYPED_DEFAULT_FREE
-
-static size_t
-sset_memsize(const void *ptr)
-{
-    size_t size = 0;
-    if (ptr) {
-        const SortedSet *sset = ptr;
-        size = sizeof(SortedSet) - sizeof(Set);
-        size += set_memsize(&sset->set_);
-        size += rb_ary_memsize(sset->keys);
-    }
-    return size;
-}
+#define sset_mark set_mark
+#define sset_free set_free
+#define sset_memsize set_memsize
 
 static const rb_data_type_t sset_data_type = {
     "sortedset",
@@ -1351,16 +1335,7 @@ static const rb_data_type_t sset_data_type = {
 #define GetSortedSetPtr(obj, tobj) \
     TypedData_Get_Struct(obj, SortedSet, &sset_data_type, tobj)
 
-static SortedSet *
-get_sset_ptr(VALUE self)
-{
-    SortedSet *sset;
-    GetSortedSetPtr(self, sset);
-    if (!sset->keys || !sset->set_.hash) {
-       rb_raise(rb_eArgError, "uninitialized SortedSet");
-    }
-    return sset;
-}
+#define get_sset_ptr get_set_ptr
 
 static VALUE
 sset_alloc(VALUE klass)
@@ -1370,33 +1345,12 @@ sset_alloc(VALUE klass)
 }
 
 static VALUE
-sset_new(VALUE klass)
-{
-    SortedSet *sset;
-    VALUE self = sset_alloc(klass);
-    GetSortedSetPtr(self, sset);
-    sset->keys = Qnil;
-    sset->set_.hash = rb_hash_new();
-
-    return self;
-}
-
-static VALUE
 rb_sset_initialize(int argc, VALUE *argv, VALUE self)
 {
     SortedSet *sset;
     GetSortedSetPtr(self, sset);
     sset->keys = Qnil;
-    set_initialize(argc, argv, &sset->set_);
-    return self;
-}
-
-static VALUE
-rb_sset_s_create(int argc, VALUE *argv, VALUE klass)
-{
-    VALUE self = sset_new(klass);
-    SortedSet *sset = get_sset_ptr(self);
-    set_s_create(&sset->set_, argc, argv);
+    set_initialize(argc, argv, sset);
     return self;
 }
 
@@ -1405,7 +1359,7 @@ rb_sset_clear(VALUE self)
 {
     SortedSet *sset = get_sset_ptr(self);
     sset->keys = Qnil;
-    set_clear(&sset->set_);
+    set_clear(sset);
     return self;
 }
 
@@ -1414,7 +1368,7 @@ rb_sset_replace(VALUE self, VALUE a_enum)
 {
     SortedSet *sset = get_sset_ptr(self);
     sset->keys = Qnil;
-    set_replace(&sset->set_, a_enum);
+    set_replace(sset, a_enum);
     return self;
 }
 
@@ -1426,7 +1380,7 @@ rb_sset_add(VALUE self, VALUE o)
         rb_raise(rb_eArgError, "value must respond to <=>");
 
     sset->keys = Qnil;
-    set_add(&sset->set_, o);
+    set_add(sset, o);
     return self;
 }
 
@@ -1435,7 +1389,7 @@ rb_sset_delete(VALUE self, VALUE o)
 {
     SortedSet *sset = get_sset_ptr(self);
     sset->keys = Qnil;
-    set_delete(&sset->set_, o);
+    set_delete(sset, o);
     return self;
 }
 
@@ -1448,9 +1402,9 @@ rb_sset_delete_if(VALUE self)
     if (!rb_block_given_p())
         return set_no_block_given(self, rb_intern("delete_if"));
 
-    n = set_size(&sset->set_);
-    set_delete_if(&sset->set_);
-    if (set_size(&sset->set_) != n)
+    n = set_size(sset);
+    set_delete_if(sset);
+    if (set_size(sset) != n)
         sset->keys = Qnil;
 
     return self;
@@ -1465,9 +1419,9 @@ rb_sset_keep_if(VALUE self)
     if (!rb_block_given_p())
         return set_no_block_given(self, rb_intern("keep_if"));
 
-    n = set_size(&sset->set_);
-    set_keep_if(&sset->set_);
-    if (set_size(&sset->set_) != n)
+    n = set_size(sset);
+    set_keep_if(sset);
+    if (set_size(sset) != n)
         sset->keys = Qnil;
 
     return self;
@@ -1478,14 +1432,14 @@ rb_sset_merge(VALUE self, VALUE a_enum)
 {
     SortedSet *sset = get_sset_ptr(self);
     sset->keys = Qnil;
-    set_merge(&sset->set_, a_enum);
+    set_merge(sset, a_enum);
     return self;
 }
 
 static void sset_to_a(SortedSet *sset)
 {
     if (sset->keys == Qnil)
-        sset->keys = rb_ary_sort_bang(set_to_a(&sset->set_));
+        sset->keys = rb_ary_sort_bang(set_to_a(sset));
 }
 
 static VALUE
@@ -1607,7 +1561,6 @@ Init_cset(void)
 
     rb_define_alloc_func(rb_cSortedSet, sset_alloc);
     rb_define_method(rb_cSortedSet, "initialize", rb_sset_initialize, -1);
-    rb_define_singleton_method(rb_cSortedSet, "[]", rb_sset_s_create, -1);
     rb_define_method(rb_cSortedSet, "clear", rb_sset_clear, 0);
     rb_define_method(rb_cSortedSet, "replace", rb_sset_replace, 1);
     rb_define_method(rb_cSortedSet, "add", rb_sset_add, 1);
