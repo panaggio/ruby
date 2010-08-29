@@ -253,6 +253,14 @@ rb_set_initialize(int argc, VALUE *argv, VALUE self)
     return self;
 }
 
+static void
+set_s_create(Set *set, int argc, VALUE *argv)
+{
+    int i=0;
+    for (i=0; i<argc; i++)
+        set_add(set, argv[i]);
+}
+
 /*
  * Document-method: self.[]
  * call-seq: self.[]
@@ -264,11 +272,7 @@ rb_set_s_create(int argc, VALUE *argv, VALUE klass)
 {
     VALUE self = set_new(klass);
     Set *set = get_set_ptr(self);
-    int i=0;
-
-    for (i=0; i<argc; i++)
-        set_add(set, argv[i]);
-
+    set_s_create(set, argc, argv);
     return self;
 }
 
@@ -1366,12 +1370,33 @@ sset_alloc(VALUE klass)
 }
 
 static VALUE
+sset_new(VALUE klass)
+{
+    SortedSet *sset;
+    VALUE self = sset_alloc(klass);
+    GetSortedSetPtr(self, sset);
+    sset->keys = Qnil;
+    sset->set_.hash = rb_hash_new();
+
+    return self;
+}
+
+static VALUE
 rb_sset_initialize(int argc, VALUE *argv, VALUE self)
 {
     SortedSet *sset;
     GetSortedSetPtr(self, sset);
     sset->keys = Qnil;
     set_initialize(argc, argv, &sset->set_);
+    return self;
+}
+
+static VALUE
+rb_sset_s_create(int argc, VALUE *argv, VALUE klass)
+{
+    VALUE self = sset_new(klass);
+    SortedSet *sset = get_sset_ptr(self);
+    set_s_create(&sset->set_, argc, argv);
     return self;
 }
 
@@ -1505,8 +1530,14 @@ rb_enum_to_set(int argc, VALUE *argv, VALUE obj)
     fargv[0] = obj;
     
     /* TODO: implement in a generic way to accomodate other classes */
-    self = set_alloc(klass);
-    return rb_set_initialize(fargc, fargv, self);
+    if (klass == rb_cSet) {
+        self = set_alloc(klass);
+        return rb_set_initialize(fargc, fargv, self);
+    }
+    else if (klass == rb_cSortedSet) {
+        self = sset_alloc(klass);
+        return rb_sset_initialize(fargc, fargv, self);
+    }
 }
 
 void
@@ -1574,7 +1605,9 @@ Init_cset(void)
     rb_alias(rb_cSet, rb_intern("difference"), rb_intern("-"));
     rb_alias(rb_cSet, rb_intern("intersection"), rb_intern("&"));
 
+    rb_define_alloc_func(rb_cSortedSet, sset_alloc);
     rb_define_method(rb_cSortedSet, "initialize", rb_sset_initialize, -1);
+    rb_define_singleton_method(rb_cSortedSet, "[]", rb_sset_s_create, -1);
     rb_define_method(rb_cSortedSet, "clear", rb_sset_clear, 0);
     rb_define_method(rb_cSortedSet, "replace", rb_sset_replace, 1);
     rb_define_method(rb_cSortedSet, "add", rb_sset_add, 1);
