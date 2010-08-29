@@ -585,12 +585,10 @@ static int
 set_test_all_p_i(VALUE e, VALUE value, VALUE args)
 {
     Set *set = (Set *) ((VALUE *) args)[0];
-    VALUE *test = (VALUE *) ((VALUE *) args)[0];
-    /* TODO: Check if ST_STOP can break the caller rb_hash_foreach */
-    if (rb_hash_lookup(set->hash, e) != Qtrue) {
-        *test = Qfalse;
+    VALUE *test = (VALUE *) ((VALUE *) args)[1];
+    *test = set_includes(set, e);
+    if (*test == Qfalse)
         return ST_STOP;
-    }
     return ST_CONTINUE;
 }
 
