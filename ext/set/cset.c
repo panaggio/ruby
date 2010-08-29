@@ -1565,6 +1565,14 @@ Init_cset(void)
     rb_define_method(rb_cSet, "inspect", rb_set_inspect, 0);
     rb_define_method(rb_cSet, "pretty_print", rb_set_pretty_print, 1);
     rb_define_method(rb_cSet, "pretty_print_cycle", rb_set_pretty_print_cycle, 1);
+    rb_alias(rb_cSet, rb_intern("length"), rb_intern("size"));
+    rb_alias(rb_cSet, rb_intern("member?"), rb_intern("include?"));
+    rb_alias(rb_cSet, rb_intern("<<"), rb_intern("add"));
+    rb_alias(rb_cSet, rb_intern("map!"), rb_intern("collect!"));
+    rb_alias(rb_cSet, rb_intern("+"), rb_intern("|"));
+    rb_alias(rb_cSet, rb_intern("union"), rb_intern("|"));
+    rb_alias(rb_cSet, rb_intern("difference"), rb_intern("-"));
+    rb_alias(rb_cSet, rb_intern("intersection"), rb_intern("&"));
 
     rb_define_method(rb_cSortedSet, "initialize", rb_sset_initialize, -1);
     rb_define_method(rb_cSortedSet, "clear", rb_sset_clear, 0);
@@ -1576,6 +1584,7 @@ Init_cset(void)
     rb_define_method(rb_cSortedSet, "merge", rb_sset_merge, 1);
     rb_define_method(rb_cSortedSet, "to_a", rb_sset_to_a, 0);
     rb_define_method(rb_cSortedSet, "each", rb_sset_each, 0);
+    rb_alias(rb_cSortedSet, rb_intern("<<"), rb_intern("add"));
 
     rb_provide("cset.rb");
 }
