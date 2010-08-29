@@ -605,6 +605,14 @@ set_test_all_p(Set *self, Set *set)
     return test;
 }
 
+static VALUE
+set_is_a_set(VALUE o)
+{
+    if (rb_obj_is_kind_of(o, rb_cSet) == Qfalse)
+        rb_raise(rb_eArgError, "value must be a set");
+    return Qtrue;
+}
+
 /*
  * Document-method: superset?
  * call-seq: superset?(set)
@@ -614,10 +622,13 @@ set_test_all_p(Set *self, Set *set)
 static VALUE
 rb_set_superset_p(VALUE self, VALUE other)
 {
-    /* TODO: See if it's needed to check other type.
-     *       I think get_set_ptr does the job */
-    Set *self_set = get_set_ptr(self);
-    Set *other_set = get_set_ptr(other);
+    Set *self_set;
+    Set *other_set;
+
+    set_is_a_set(other);
+
+    self_set = get_set_ptr(self);
+    other_set = get_set_ptr(other);
 
     if (set_size(self_set) < set_size(other_set))
         return Qfalse;
@@ -634,10 +645,13 @@ rb_set_superset_p(VALUE self, VALUE other)
 static VALUE
 rb_set_proper_superset_p(VALUE self, VALUE other)
 {
-    /* TODO: See if it's needed to check other type.
-     *       I think get_set_ptr does the job */
-    Set *self_set = get_set_ptr(self);
-    Set *other_set = get_set_ptr(other);
+    Set *self_set;
+    Set *other_set;
+
+    set_is_a_set(other);
+
+    self_set = get_set_ptr(self);
+    other_set = get_set_ptr(other);
 
     if (set_size(self_set) <= set_size(other_set))
         return Qfalse;
@@ -654,10 +668,13 @@ rb_set_proper_superset_p(VALUE self, VALUE other)
 static VALUE
 rb_set_subset_p(VALUE self, VALUE other)
 {
-    /* TODO: See if it's needed to check other type.
-     *       I think get_set_ptr does the job */
-    Set *self_set = get_set_ptr(self);
-    Set *other_set = get_set_ptr(other);
+    Set *self_set;
+    Set *other_set;
+
+    set_is_a_set(other);
+
+    self_set = get_set_ptr(self);
+    other_set = get_set_ptr(other);
 
     if (set_size(other_set) < set_size(self_set))
         return Qfalse;
@@ -674,10 +691,13 @@ rb_set_subset_p(VALUE self, VALUE other)
 static VALUE
 rb_set_proper_subset_p(VALUE self, VALUE other)
 {
-    /* TODO: See if it's needed to check other type.
-     *       I think get_set_ptr does the job */
-    Set *self_set = get_set_ptr(self);
-    Set *other_set = get_set_ptr(other);
+    Set *self_set;
+    Set *other_set;
+
+    set_is_a_set(other);
+
+    self_set = get_set_ptr(self);
+    other_set = get_set_ptr(other);
 
     if (set_size(other_set) <= set_size(self_set))
         return Qfalse;
@@ -1033,8 +1053,14 @@ rb_set_hash(VALUE self)
 static VALUE
 rb_set_eql_p(VALUE self, VALUE other)
 {
-    Set *self_set = get_set_ptr(self);
-    Set *other_set = get_set_ptr(other);
+    Set *self_set;
+    Set *other_set;
+
+    if (rb_obj_is_kind_of(other, rb_cSet) == Qfalse)
+        return Qfalse;
+
+    self_set = get_set_ptr(self);
+    other_set = get_set_ptr(other);
 
     if (rb_class_of(other) != rb_cSet)
         return Qfalse;
