@@ -250,6 +250,7 @@ rb_set_initialize(int argc, VALUE *argv, VALUE self)
     Set *set;
     GetSetPtr(self, set);
     set_initialize(argc, argv, set);
+    rb_iv_set(self, "@hash", set->hash);
     return self;
 }
 
@@ -1412,6 +1413,7 @@ rb_sset_initialize(int argc, VALUE *argv, VALUE self)
     GetSortedSetPtr(self, sset);
     sset->keys = Qnil;
     set_initialize(argc, argv, &sset->set_);
+    rb_iv_set(self, "@hash", sset->set_.hash);
     return self;
 }
 
@@ -1564,6 +1566,21 @@ rb_enum_to_set(int argc, VALUE *argv, VALUE obj)
     }
 }
 
+VALUE
+rb_set_dump(VALUE self, VALUE limit)
+{
+    return rb_marshal_dump(Qnil, limit);
+}
+
+VALUE
+rb_set_s_load(VALUE klass, VALUE str)
+{
+    VALUE set = set_alloc(klass);
+    VALUE garbage = rb_marshal_load(str);
+
+    return set;
+}
+
 void
 Init_cset(void)
 {
@@ -1642,6 +1659,9 @@ Init_cset(void)
     rb_define_method(rb_cSortedSet, "to_a", rb_sset_to_a, 0);
     rb_define_method(rb_cSortedSet, "each", rb_sset_each, 0);
     rb_alias(rb_cSortedSet, rb_intern("<<"), rb_intern("add"));
+
+    rb_define_method(rb_cSet, "_dump", rb_set_dump, 1);
+    rb_define_singleton_method(rb_cSet, "_load", rb_set_s_load, 1);
 
     rb_provide("cset.rb");
 }
