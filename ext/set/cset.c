@@ -1033,10 +1033,10 @@ rb_set_equal(VALUE self, VALUE other)
     other_set = get_set_ptr(other);
 
     /* TODO: Find a better way to call Hash#== */
-    if (rb_obj_is_kind_of(other, rb_class_of(self)) == Qtrue)
+    if (rb_obj_is_instance_of(other, rb_class_of(self)) == Qtrue)
         return rb_funcall(self_set->hash, rb_intern("=="), 1, other_set->hash);
 
-    if (rb_obj_is_kind_of(other, rb_cSet) == Qtrue && set_size(self_set) == set_size(other_set))
+    if (rb_obj_is_instance_of(other, rb_cSet) == Qtrue && set_size(self_set) == set_size(other_set))
         return set_test_all_p(self_set, other_set);
     return Qfalse;
 }
