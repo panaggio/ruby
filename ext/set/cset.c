@@ -1196,7 +1196,6 @@ hash_values_i(VALUE key, VALUE value, VALUE ary)
 static VALUE
 rb_set_divide(VALUE self)
 {
-    return Qnil; /* FIXME */
     VALUE new = set_new(rb_class_of(self));
     VALUE ary, args[2];
     Set *set;
@@ -1204,12 +1203,9 @@ rb_set_divide(VALUE self)
     if (!rb_block_given_p())
         return set_no_block_given(self, rb_to_id(rb_intern("divide")));
 
-    /* TODO: discover how to get the passed block to call proc_arity */
-    VALUE func(){return Qnil;};
-    VALUE proc = rb_proc_new(func,0);
+    VALUE proc = rb_block_proc();
     if (rb_proc_arity(proc) == 2) {
-        /* TODO: Find a better way of calling require */
-        rb_eval_string("require 'tsort'");
+        rb_require("tsort");
         VALUE dig = rb_hash_new();
         /* TODO: Find a better way of passint TSort as an argument */
         rb_extend_object(dig, rb_eval_string("TSort"));
