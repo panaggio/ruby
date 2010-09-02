@@ -1207,8 +1207,7 @@ rb_set_divide(VALUE self)
     if (rb_proc_arity(proc) == 2) {
         rb_require("tsort");
         VALUE dig = rb_hash_new();
-        /* TODO: Find a better way of passint TSort as an argument */
-        rb_extend_object(dig, rb_eval_string("TSort"));
+        rb_extend_object(dig, rb_const_get(rb_cObject, rb_intern("TSort")));
         rb_define_singleton_method(dig,"tsort_each_node", tsort_each_node, 0);
         rb_define_singleton_method(dig,"tsort_each_child", tsort_each_child, 1);
 
