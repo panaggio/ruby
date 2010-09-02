@@ -1030,6 +1030,9 @@ rb_set_equal(VALUE self, VALUE other)
     if (self == other)
         return Qtrue;
 
+    if (rb_class_of(self) != rb_class_of(other))
+        return Qfalse;
+
     self_set = get_set_ptr(self);
     other_set = get_set_ptr(other);
 
