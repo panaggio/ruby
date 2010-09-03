@@ -147,8 +147,8 @@ VALUE freeze;
 VALUE equal_p;
 VALUE diff;
 VALUE or;
-VALUE clone;
-VALUE dup;
+VALUE _clone;
+VALUE _dup;
 VALUE to_s;
 VALUE inspect;
 VALUE apequal;
@@ -470,13 +470,13 @@ rb_delegator_marshal_load(VALUE klass, VALUE data)
 static VALUE
 rb_delegator_initialize_clone(VALUE self, VALUE obj)
 {
-    return delegator_self_setobj(self, rb_funcall(delegator_self_getobj(obj), clone, 0));
+    return delegator_self_setobj(self, rb_funcall(delegator_self_getobj(obj), _clone, 0));
 }
 
 static VALUE
 rb_delegator_initialize_dup(VALUE self, VALUE obj)
 {
-    return delegator_self_setobj(self, rb_funcall(delegator_self_getobj(obj), dup, 0));
+    return delegator_self_setobj(self, rb_funcall(delegator_self_getobj(obj), _dup, 0));
 }
 
 /*
@@ -737,8 +737,8 @@ Init_cdelegate(void)
     equal_p = rb_intern("equal?");
     diff = rb_intern("-");
     or = rb_intern("|");
-    clone = rb_intern("clone");
-    dup = rb_intern("dup");
+    _clone = rb_intern("clone");
+    _dup = rb_intern("dup");
     to_s = rb_intern("to_s");
     inspect = rb_intern("inspect");
     apequal = rb_intern("=~");
