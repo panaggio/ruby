@@ -270,8 +270,8 @@ rb_delegator_respond_to_missing_p(VALUE self, VALUE m, VALUE include_private)
 {
     VALUE mid = rb_intern_str(m);
     VALUE obj = delegator_self_getobj(self);
-    int r = rb_obj_respond_to(obj, m, FIX2INT(include_private));
-    if (r && include_private && !rb_respond_to(obj, m)){
+    int r = rb_obj_respond_to(obj, m, RTEST(include_private));
+    if (r && RTEST(include_private) && !rb_respond_to(obj, m)){
         /* FIXME: find a better way to call caller(3)[0] */
         rb_warn("%s: delegator does not forward private method #%s", RSTRING_PTR(rb_ary_entry(rb_funcall(self, caller, 1, INT2FIX(3)), 0)), RSTRING_PTR(m));
         return Qfalse;
