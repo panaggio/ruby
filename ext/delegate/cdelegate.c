@@ -1,6 +1,6 @@
 /*
  *  = delegate -- Support for the Delegation Pattern
- * 
+ *
  *  Documentation by James Edward Gray II and Gavin Sinclair
  *
  *  == Introduction
@@ -9,7 +9,7 @@
  *  object.  The easiest to use is SimpleDelegator.  Pass an object to the
  *  constructor and all methods supported by the object will be delegated.  This
  *  object can be changed later.
- * 
+ *
  *  Going a step further, the top level DelegateClass method allows you to
  *  easily setup delegation through class inheritance.  This is considerably
  *  more flexible and thus probably the most common use for this library.
@@ -18,17 +18,17 @@
  *  inherit from the abstract class Delegator and customize as needed.  (If
  *  you find yourself needing this control, have a look at _forwardable_, also
  *  in the standard library.  It may suit your needs better.)
- * 
+ *
  *  == Notes
  *
  *  Be advised, RDoc will not detect delegated methods.
- * 
+ *
  *  <b>delegate.rb provides full-class delegation via the
  *  DelegateClass() method.  For single-method delegation via
  *  def_delegator(), see forwardable.rb.</b>
  *
  *  == Examples
- * 
+ *
  *  === SimpleDelegator
  *
  *  Here's a simple example that takes advantage of the fact that
@@ -38,16 +38,16 @@
  *      def initialize
  *        @source = SimpleDelegator.new([])
  *      end
- * 
+ *
  *      def stats( records )
  *        @source.__setobj__(records)
- * 
+ *
  *        "Elements:  #{@source.size}\n" +
  *        " Non-Nil:  #{@source.compact.size}\n" +
  *        "  Unique:  #{@source.uniq.size}\n"
  *      end
  *    end
- * 
+ *
  *    s = Stats.new
  *    puts s.stats(%w{James Edward Gray II})
  *    puts
@@ -70,15 +70,15 @@
  * A _Tempfile_ object is really just a _File_ object with a few special rules
  * about storage location and/or when the File should be deleted.  That makes
  * for an almost textbook perfect example of how to use delegation.
- * 
+ *
  *   class Tempfile < DelegateClass(File)
  *     # constant and class member data initialization...
- * 
+ *
  *     def initialize(basename, tmpdir=Dir::tmpdir)
  *       # build up file path/name in var tmpname...
- * 
+ *
  *       @tmpfile = File.open(tmpname, File::RDWR|File::CREAT|File::EXCL, 0600)
- * 
+ *
  *       # ...
  *
  *       super(@tmpfile)
@@ -96,15 +96,15 @@
  *    class SimpleDelegator < Delegator
  *      def initialize(obj)
  *        # pass obj to Delegator constructor, required
- *        super             
+ *        super
  *
  *        # store obj for future use
- *        @delegate_sd_obj = obj 
+ *        @delegate_sd_obj = obj
  *      end
  *
  *      def __getobj__
  *        # return object we are delegating to, required
- *        @delegate_sd_obj       
+ *        @delegate_sd_obj
  *      end
  *
  *      def __setobj__(obj)
@@ -129,41 +129,37 @@
 VALUE rb_cDelegator;
 VALUE rb_cSDelegator;
 
-VALUE __setobj__;
-VALUE __getobj__;
-VALUE caller;
-VALUE methods;
-VALUE public_methods;
-VALUE protected_methods;
-VALUE not;
-VALUE __v2__; 
-VALUE iv_get;
-VALUE iv_set;
-VALUE trust;
-VALUE untrust;
-VALUE taint;
-VALUE untaint;
-VALUE freeze;
-VALUE equal_p;
-VALUE diff;
-VALUE or;
-VALUE _clone;
-VALUE _dup;
-VALUE to_s;
-VALUE inspect;
-VALUE apequal;
-VALUE apnequal;
-VALUE tequal;
-VALUE delegator_api;
+ID __setobj__;
+ID __getobj__;
+ID caller;
+ID methods;
+ID public_methods;
+ID protected_methods;
+ID not;
+ID __v2__;
+ID iv_get;
+ID iv_set;
+ID trust;
+ID untrust;
+ID taint;
+ID untaint;
+ID freeze;
+ID equal_p;
+ID diff;
+ID or;
+ID _clone;
+ID _dup;
+ID to_s;
+ID inspect;
+ID apequal;
+ID apnequal;
+ID tequal;
+ID delegator_api;
 
 typedef struct {
 } Delegator;
 
-static void
-delegator_mark(void *ptr)
-{
-    Delegator *delegator = ptr;
-}
+#define delegator_mark NULL
 
 #define delegator_free RUBY_TYPED_DEFAULT_FREE
 
@@ -185,14 +181,6 @@ static const rb_data_type_t delegator_data_type = {
 
 #define GetDelegatorPtr(obj, tobj) \
     TypedData_Get_Struct(obj, Delegator, &delegator_data_type, tobj)
-
-static Delegator *
-get_delegator_ptr(VALUE self)
-{
-    Delegator *delegator;
-    GetDelegatorPtr(self, delegator);
-    return delegator;
-}
 
 static VALUE
 delegator_alloc(VALUE klass)
@@ -273,7 +261,7 @@ rb_delegator_method_missing(int argc, VALUE *argv, VALUE self)
 /*
  * Document-method: respond_to_missing?
  * call-seq: respond_to_missing?(m, include_private)
- * 
+ *
  * Checks for a method provided by this the delegate object by forwarding the
  * call through \_\_getobj\_\_.
  */
@@ -294,7 +282,7 @@ rb_delegator_respond_to_missing_p(VALUE self, VALUE m, VALUE include_private)
 /*
  * Document-method: methods
  * call-seq: methods
- * 
+ *
  * Returns the methods available to this delegate object as the union
  * of this object's and \_\_getobj\_\_ methods.
  */
@@ -327,7 +315,7 @@ delegator_specific_methods(int argc, VALUE *argv, VALUE self, VALUE method)
 /*
  * Document-method: public_methods
  * call-seq: public_methods(all=true)
- * 
+ *
  * Returns the methods available to this delegate object as the union
  * of this object's and \_\_getobj\_\_ public methods.
  */
@@ -353,7 +341,7 @@ rb_delegator_protected_methods(int argc, VALUE *argv, VALUE self)
 /*
  * Document-method: ==
  * call-seq: ==(obj)
- * 
+ *
  * Returns true if two objects are considered of equal value.
  */
 static VALUE
@@ -370,7 +358,7 @@ rb_delegator_equal_p(VALUE self, VALUE obj)
 /*
  * Document-method: !=
  * call-seq: !=(obj)
- * 
+ *
  * Returns true if two objects are not considered of equal value.
  */
 static VALUE
@@ -393,7 +381,7 @@ rb_delegator_not(VALUE self)
 /*
  * Document-method: __getobj__
  * call-seq: __getobj__
- * 
+ *
  * This method must be overridden by subclasses and should return the object
  * method calls are being delegated to.
  */
@@ -407,7 +395,7 @@ rb_delegator_getobj(VALUE self)
 /*
  * Document-method: __setobj__
  * call-seq: __setobj__(obj)
- * 
+ *
  * This method must be overridden by subclasses and change the object delegate
  * to _obj_.
  */
@@ -421,7 +409,7 @@ rb_delegator_setobj(VALUE self, VALUE obj)
 /*
  * Document-method: marshal_dump
  * call-seq: marshal_dump
- * 
+ *
  * Serialization support for the object returned by \_\_getobj\_\_.
  */
 static VALUE
@@ -445,7 +433,7 @@ rb_delegator_marshal_dump(VALUE self)
 /*
  * Document-method: marshal_load
  * call-seq: marshal_load(data)
- * 
+ *
  * Reinitializes delegation from a serialized object.
  */
 static VALUE
@@ -482,7 +470,7 @@ rb_delegator_initialize_dup(VALUE self, VALUE obj)
 /*
  * Document-method: trust
  * call-seq: trust
- * 
+ *
  * Trust both the object returned by \_\_getobj\_\_ and self.
  */
 static VALUE
@@ -495,7 +483,7 @@ rb_delegator_trust(VALUE self)
 /*
  * Document-method: untrust
  * call-seq: untrust
- * 
+ *
  * Untrust both the object returned by \_\_getobj\_\_ and self.
  */
 static VALUE
@@ -508,8 +496,8 @@ rb_delegator_untrust(VALUE self)
 /*
  * Document-method: taint
  * call-seq: taint
- * 
- * Taint both the object returned by \_\_getobj\_\_ and self. 
+ *
+ * Taint both the object returned by \_\_getobj\_\_ and self.
  */
 static VALUE
 rb_delegator_taint(VALUE self)
@@ -521,7 +509,7 @@ rb_delegator_taint(VALUE self)
 /*
  * Document-method: untaint
  * call-seq: untaint
- * 
+ *
  * Untaint both the object returned by \_\_getobj\_\_ and self.
  */
 static VALUE
@@ -534,7 +522,7 @@ rb_delegator_untaint(VALUE self)
 /*
  * Document-method: freeze
  * call-seq: freeze
- * 
+ *
  * Freeze both the object returned by \_\_getobj\_\_ and self.
  */
 static VALUE
@@ -591,7 +579,7 @@ rb_delegator_s_delegating_block(VALUE klass, VALUE mid)
 /*
  * Document-method: \_\_getobj\_\_
  * call-seq: \_\_getobj\_\_
- * 
+ *
  * Returns the current object method calls are being delegated to.
  */
 
@@ -604,15 +592,15 @@ rb_sdelegator_getobj(VALUE self)
 /*
  * Document-method: \_\_setobj\_\_
  * call-seq: \_\_setobj\_\_(obj)
- * 
+ *
  * Changes the delegate object to _obj_.
- *   
+ *
  * It's important to note that this does *not* cause SimpleDelegator's methods
  * to change.  Because of this, you probably only want to change delegation
  * to objects of the same type as the original delegate.
- *          
+ *
  * Here's an example of changing the delegation object.
- *               
+ *
  *   names = SimpleDelegator.new(%w{James Edward Gray II})
  *   puts names[1]    # => Edward
  *   names.__setobj__(%w{Gavin Sinclair})
@@ -669,10 +657,10 @@ rb_delegatorc_s_protected_instance_methods(int argc, VALUE *argv, VALUE klass)
 /*
  * Document-method: DelegateClass
  * call-seq: DelegateClass(superclass)
- * 
+ *
  * The primary interface to this library.  Use to setup delegation when defining
  * your class.
- * 
+ *
  *   class MyClass < DelegateClass( ClassToDelegateTo )    # Step 1
  *     def initialize
  *       super(obj_of_ClassToDelegateTo)                   # Step 2
@@ -709,7 +697,7 @@ Init_cdelegate(void)
     /* TODO:
      * kernel.class_eval do
      *   [:to_s,:inspect,:=~,:!~,:===,:<=>,:eql?,:hash].each do |m|
-     *     undef_method_m 
+     *     undef_method_m
      *   end
      * end
      */
