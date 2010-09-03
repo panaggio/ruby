@@ -161,7 +161,7 @@ typedef struct {
 
 #define delegator_mark NULL
 
-#define delegator_free RUBY_TYPED_DEFAULT_FREE
+#define delegator_free NULL
 
 static size_t
 delegator_memsize(const void *ptr)
@@ -186,7 +186,7 @@ static VALUE
 delegator_alloc(VALUE klass)
 {
     Delegator *delegator;
-    return TypedData_Wrap_Struct(klass, &delegator_data_type, delegator);
+    return TypedData_Wrap_Struct(klass, &delegator_data_type, NULL);
 }
 
 static VALUE
