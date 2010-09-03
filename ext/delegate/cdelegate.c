@@ -186,7 +186,7 @@ static VALUE
 delegator_alloc(VALUE klass)
 {
     Delegator *delegator;
-    return TypedData_Make_Struct(klass, Delegator, &delegator_data_type, delegator);
+    return TypedData_Wrap_Struct(klass, Delegator, &delegator_data_type, delegator);
 }
 
 static VALUE
