@@ -632,7 +632,7 @@ static VALUE
 rb_delegatorc_s_public_instance_methods(int argc, VALUE *argv, VALUE klass)
 {
     VALUE all = Qtrue;
-    VALUE superclass = Qnil; /* FIXME: how to get superclass in here? */
+    VALUE superclass = rb_iv_get(klass, "@superclass");
     if (argc == 1)
         all = argv[0];
     if (argc > 1)
@@ -645,7 +645,7 @@ static VALUE
 rb_delegatorc_s_protected_instance_methods(int argc, VALUE *argv, VALUE klass)
 {
     VALUE all = Qtrue;
-    VALUE superclass = Qnil; /* FIXME: how to get superclass in here? */
+    VALUE superclass = rb_iv_get(klass, "@superclass");
     if (argc == 1)
         all = argv[0];
     if (argc > 1)
@@ -672,6 +672,8 @@ rb_delegate_class(VALUE superclass)
 {
     VALUE klass = rb_class_new(rb_cDelegator);
     VALUE methods = rb_class_instance_methods(0, 0, superclass);
+
+    rb_iv_set(klass, "@superclass", superclass);
 
     rb_funcall(methods, diff, 1, delegator_api);
     rb_ary_delete(methods, to_s);
