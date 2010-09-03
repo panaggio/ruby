@@ -124,9 +124,15 @@
  *  implementation, see SimpleDelegator.
  */
 
+#include <ruby.h>
+
+VALUE rb_cDelegator;
+VALUE rb_cSDelegator;
+
 VALUE __setobj__;
 VALUE __getobj__;
 VALUE caller;
+VALUE methods;
 VALUE public_methods;
 VALUE protected_methods;
 VALUE not;
@@ -138,6 +144,17 @@ VALUE untrust;
 VALUE taint;
 VALUE untaint;
 VALUE freeze;
+VALUE equal_p;
+VALUE diff;
+VALUE or;
+VALUE clone;
+VALUE dup;
+VALUE to_s;
+VALUE inspect;
+VALUE apequal;
+VALUE apnequal;
+VALUE tequal;
+VALUE delegator_api;
 
 typedef struct {
 } Delegator;
@@ -146,7 +163,6 @@ static void
 delegator_mark(void *ptr)
 {
     Delegator *delegator = ptr;
-    rb_gc_mark(delegator->);
 }
 
 #define delegator_free RUBY_TYPED_DEFAULT_FREE
@@ -158,7 +174,6 @@ delegator_memsize(const void *ptr)
     if (ptr) {
         const Delegator *delegator = ptr;
         size = sizeof(Delegator);
-        size += rb_*_memsize(condvar->);
     }
     return size;
 }
@@ -176,9 +191,6 @@ get_delegator_ptr(VALUE self)
 {
     Delegator *delegator;
     GetDelegatorPtr(self, delegator);
-    if (!delegator->) {
-        rb_raise(rb_eArgError, "uninitialized Delegator");
-    }
     return delegator;
 }
 
@@ -192,13 +204,13 @@ delegator_alloc(VALUE klass)
 static VALUE
 delegator_self_getobj(VALUE self)
 {
-    return rb_funcall(self, __getobj__);
+    return rb_funcall(self, __getobj__, 0);
 }
 
 static VALUE
-delegator_self_setobj(VALUE self)
+delegator_self_setobj(VALUE self, VALUE obj)
 {
-    return rb_funcall(self, __setobj__);
+    return rb_funcall(self, __setobj__, 1, obj);
 }
 
 static VALUE
@@ -215,24 +227,25 @@ rb_delegator_s_const_missing(VALUE klass, VALUE n)
  * _obj_ will be delegated to.
  */
 static VALUE
-rb_delegator_initialize(VALUE self)
+rb_delegator_initialize(VALUE self, VALUE obj)
 {
     Delegator *delegator;
     GetDelegatorPtr(self, delegator);
 
-    delegator_self_setobj(self);
+    delegator_self_setobj(self, obj);
     return self;
 }
 
 static VALUE
 rb_delegator_method_missing_i(VALUE args)
 {
-    VALUE argc = (int) ((VALUE *) args)[1];
-    VALUE argv = (VALUE *) ((VALUE*) args)[2];
-    VALUE mid = rb_intern(argv[0]);
+    VALUE target = ((VALUE *) args)[0];
+    int argc = (int) ((VALUE *) args)[1];
+    VALUE *argv = (VALUE *) ((VALUE*) args)[2];
+    VALUE mid = rb_intern_str(argv[0]);
 
     if (rb_respond_to(target, mid))
-        return rb_funcall2(target, argc[0], argc-1, &argv[1]);
+        return rb_funcall2(target, argv[0], argc-1, &argv[1]);
     return rb_call_super(argc, argv);
 }
 
@@ -253,16 +266,8 @@ static VALUE
 rb_delegator_method_missing(int argc, VALUE *argv, VALUE self)
 {
     VALUE target = delegator_self_getobj(self);
-    VALUE args;
-
-    if (rb_respond_to(target, mid))
-        return rb_funcall2(target, argc[0], argc-1, &argv[1]);
-    /* FIXME discover possible exception raised here and prevent it */
-    return rb_call_super(argc, argv);
-
-    /* TODO */
-
-    //return rb_ensure(delegator_missing_method_i, , delegator_missing_method_ii, );
+    VALUE args[3] = {target, (VALUE) argv, (VALUE) argv};
+    return rb_ensure(rb_delegator_method_missing_i, (VALUE) args, rb_delegator_method_missing_ii, (VALUE) args);
 }
 
 /*
@@ -273,14 +278,14 @@ rb_delegator_method_missing(int argc, VALUE *argv, VALUE self)
  * call through \_\_getobj\_\_.
  */
 static VALUE
-rb_delegator_respond_to_missing_p(VALUE self, VALUE m, VALUE include_primate)
+rb_delegator_respond_to_missing_p(VALUE self, VALUE m, VALUE include_private)
 {
-    VALUE mid = rb_intern(m);
+    VALUE mid = rb_intern_str(m);
     VALUE obj = delegator_self_getobj(self);
     int r = rb_obj_respond_to(obj, m, FIX2INT(include_private));
     if (r && include_private && !rb_respond_to(obj, m)){
         /* FIXME: find a better way to call caller(3)[0] */
-        rb_warn("%s: delegator does not forward private method #%s", rb_ary_entry(rb_funcall(self, caller), 0));
+        rb_warn("%s: delegator does not forward private method #%s", RSTRING_PTR(rb_ary_entry(rb_funcall(self, caller, 1, INT2FIX(3)), 0)), RSTRING_PTR(m));
         return Qfalse;
     }
     return r;
@@ -296,14 +301,14 @@ rb_delegator_respond_to_missing_p(VALUE self, VALUE m, VALUE include_primate)
 static VALUE
 rb_delegator_methods(VALUE self)
 {
-    VALUE r = rb_funcall(delegator_self_getobj(self), methods);
+    VALUE r = rb_funcall(delegator_self_getobj(self), methods, 0);
     if (r != Qnil)
         return r;
     return rb_call_super(0, 0);
 }
 
 static VALUE
-delegator_specific_methods(int argc, VALUE *ARGV, VALUE self, VALUE method)
+delegator_specific_methods(int argc, VALUE *argv, VALUE self, VALUE method)
 {
     VALUE r;
     VALUE all = Qtrue;
@@ -382,7 +387,7 @@ rb_delegator_not_equal_p(VALUE self, VALUE obj)
 static VALUE
 rb_delegator_not(VALUE self)
 {
-    return rb_funcall(delegator_self_getobj(self), not);
+    return rb_funcall(delegator_self_getobj(self), not, 0);
 }
 
 /*
@@ -395,7 +400,8 @@ rb_delegator_not(VALUE self)
 static VALUE
 rb_delegator_getobj(VALUE self)
 {
-    return rb_raise(rb_eNotImpError, "need to define `__getobj__'");
+    rb_raise(rb_eNotImpError, "need to define `__getobj__'");
+    return Qnil;
 }
 
 /*
@@ -408,7 +414,8 @@ rb_delegator_getobj(VALUE self)
 static VALUE
 rb_delegator_setobj(VALUE self, VALUE obj)
 {
-    return rb_raise(rb_eNotImpError, "need to define `__setobj__'");
+    rb_raise(rb_eNotImpError, "need to define `__setobj__'");
+    return Qnil;
 }
 
 /*
@@ -418,7 +425,7 @@ rb_delegator_setobj(VALUE self, VALUE obj)
  * Serialization support for the object returned by \_\_getobj\_\_.
  */
 static VALUE
-rb_delegator_marshal_dumpv2(VALUE self)
+rb_delegator_marshal_dump(VALUE self)
 {
     int i;
     VALUE regexp = rb_reg_quote("\\A@delegate_");
@@ -432,7 +439,7 @@ rb_delegator_marshal_dumpv2(VALUE self)
             rb_ary_push(ivvals, rb_funcall(self, iv_get, 1, RARRAY_PTR(allivs)[i]));
         }
 
-    return rb_ary_new3(4, __v2__, ivs, ivsvals, delegator_self_getobj(self));
+    return rb_ary_new3(4, __v2__, ivs, ivvals, delegator_self_getobj(self));
 }
 
 /*
@@ -442,13 +449,15 @@ rb_delegator_marshal_dumpv2(VALUE self)
  * Reinitializes delegation from a serialized object.
  */
 static VALUE
-rb_delegator_marshal_loadv2(VALUE klass, VALUE data)
+rb_delegator_marshal_load(VALUE klass, VALUE data)
 {
     int i;
     VALUE version = RARRAY_PTR(data)[0];
     VALUE vars = RARRAY_PTR(data)[1];
     VALUE vals = RARRAY_PTR(data)[2];
     VALUE obj = RARRAY_PTR(data)[3];
+
+    VALUE self = delegator_alloc(rb_cDelegator);
 
     if (version == __v2__) {
         for (i=0; i<RARRAY_LEN(vars); i++)
@@ -461,13 +470,13 @@ rb_delegator_marshal_loadv2(VALUE klass, VALUE data)
 static VALUE
 rb_delegator_initialize_clone(VALUE self, VALUE obj)
 {
-    return delegator_self_setobj(self, rb_obj_clone(delegator_self_getobj(obj)));
+    return delegator_self_setobj(self, rb_funcall(delegator_self_getobj(obj), clone, 0));
 }
 
 static VALUE
 rb_delegator_initialize_dup(VALUE self, VALUE obj)
 {
-    return delegator_self_setobj(self, rb_obj_dup(delegator_self_getobj(obj)));
+    return delegator_self_setobj(self, rb_funcall(delegator_self_getobj(obj), dup, 0));
 }
 
 /*
@@ -479,7 +488,7 @@ rb_delegator_initialize_dup(VALUE self, VALUE obj)
 static VALUE
 rb_delegator_trust(VALUE self)
 {
-    rb_funcall(delegator_self_getobj(self), trust);
+    rb_funcall(delegator_self_getobj(self), trust, 0);
     return rb_call_super(0, 0);
 }
 
@@ -492,7 +501,7 @@ rb_delegator_trust(VALUE self)
 static VALUE
 rb_delegator_untrust(VALUE self)
 {
-    rb_funcall(delegator_self_getobj(self), untrust);
+    rb_funcall(delegator_self_getobj(self), untrust, 0);
     return rb_call_super(0, 0);
 }
 
@@ -505,7 +514,7 @@ rb_delegator_untrust(VALUE self)
 static VALUE
 rb_delegator_taint(VALUE self)
 {
-    rb_funcall(delegator_self_getobj(self), taint);
+    rb_funcall(delegator_self_getobj(self), taint, 0);
     return rb_call_super(0, 0);
 }
 
@@ -518,7 +527,7 @@ rb_delegator_taint(VALUE self)
 static VALUE
 rb_delegator_untaint(VALUE self)
 {
-    rb_funcall(delegator_self_getobj(self), untaint);
+    rb_funcall(delegator_self_getobj(self), untaint, 0);
     return rb_call_super(0, 0);
 }
 
@@ -531,7 +540,7 @@ rb_delegator_untaint(VALUE self)
 static VALUE
 rb_delegator_freeze(VALUE self)
 {
-    rb_funcall(delegator_self_getobj(self), freeze);
+    rb_funcall(delegator_self_getobj(self), freeze, 0);
     return rb_call_super(0, 0);
 }
 
@@ -544,22 +553,27 @@ rb_delegator_s_public_api(VALUE klass)
 static VALUE
 delegating_block_i(VALUE args)
 {
-    return rb_funcall2(target, mid, argc, argv);
-    VALUE regexp = rb_reg_quote("\\A@delegate_");
+    return rb_funcall2(((VALUE *) args)[0], (ID) ((VALUE *) args)[1], (int) ((VALUE *) args)[2], (const VALUE *) ((VALUE *) args)[3]);
 }
 
 static VALUE
-delegating_block_i(VALUE args)
+delegating_block_ii(VALUE args)
 {
-    return rb_funcall2(target, mid, argc, argv);
+    /* TODO 
+    VALUE regexp = rb_reg_quote(rb_sprintf("\\A%s:%s:"));
+    if ()
+    */
+    return Qnil;
 }
 
 static VALUE
 delegating_block(VALUE args, VALUE mid, int argc, VALUE *argv)
 {
+    /* FIXME: who's self? self allocated bellow was put there to solve the bug */
+    VALUE self = delegator_alloc(self);
     VALUE target = delegator_self_getobj(self);
-    VALUE args[4] = {target, mid, (VALUE) argc, (VALUE) argv};
-    return rb_ensure(delegating_block_i, , delegating_block_ii, );
+    VALUE fargs[4] = {target, mid, (VALUE) argc, (VALUE) argv};
+    return rb_ensure(delegating_block_i, (VALUE) fargs, delegating_block_ii, (VALUE) fargs);
 }
 
 static VALUE
@@ -583,6 +597,7 @@ rb_delegator_s_delegating_block(VALUE klass, VALUE mid)
  * 
  * Returns the current object method calls are being delegated to.
  */
+
 static VALUE
 rb_sdelegator_getobj(VALUE self)
 {
@@ -614,60 +629,84 @@ rb_sdelegator_setobj(VALUE self, VALUE obj)
     return rb_iv_set(self, "@delegate_sd_obj", obj);
 }
 
-/*
- * Document-class: SimpleDelegator
- * 
- *
- */
-
-/*
- * Document-method: 
- * call-seq: _()
- * 
- * 
- */
 static VALUE
-rb_sdelegator__(int argc, VALUE *argv, VALUE self)
+rb_delegatorc_getobj(VALUE self)
 {
+    return rb_iv_get(self, "@delegate_dc_obj");
+}
+
+static VALUE
+rb_delegatorc_setobj(VALUE self, VALUE obj)
+{
+    if (rb_funcall(self, equal_p, 1, obj))
+        rb_raise(rb_eArgError, "cannot delegate to self");
+    return rb_iv_set(self, "@delegate_dc_obj", obj);
+}
+
+static VALUE
+rb_delegatorc_s_public_instance_methods(int argc, VALUE *argv, VALUE klass)
+{
+    VALUE all = Qtrue;
+    VALUE superclass = Qnil; /* FIXME: how to get superclass in here? */
+    if (argc == 1)
+        all = argv[0];
+    if (argc > 1)
+        rb_raise(rb_eArgError, "wrong number of arguments (%d for 1)", argc);
+
+    return rb_funcall(rb_call_super(1, &all), diff, 1, rb_class_protected_instance_methods(0, 0, superclass));
+}
+
+static VALUE
+rb_delegatorc_s_protected_instance_methods(int argc, VALUE *argv, VALUE klass)
+{
+    VALUE all = Qtrue;
+    VALUE superclass = Qnil; /* FIXME: how to get superclass in here? */
+    if (argc == 1)
+        all = argv[0];
+    if (argc > 1)
+        rb_raise(rb_eArgError, "wrong number of arguments (%d for 1)", argc);
+
+    return rb_funcall(rb_call_super(1, &all), or, 1, rb_class_protected_instance_methods(0, 0, superclass));
 }
 
 /*
- * Document-method: 
- * call-seq: _()
+ * Document-method: DelegateClass
+ * call-seq: DelegateClass(superclass)
  * 
+ * The primary interface to this library.  Use to setup delegation when defining
+ * your class.
  * 
+ *   class MyClass < DelegateClass( ClassToDelegateTo )    # Step 1
+ *     def initialize
+ *       super(obj_of_ClassToDelegateTo)                   # Step 2
+ *     end
+ *   end
  */
 static VALUE
-rb_sdelegator__(int argc, VALUE *argv, VALUE self)
+rb_delegate_class(VALUE superclass)
 {
-}
+    VALUE klass = rb_class_new(rb_cDelegator);
+    VALUE methods = rb_class_instance_methods(0, 0, superclass);
 
-/*
- * Document-method: 
- * call-seq: _()
- * 
- * 
- */
-static VALUE
-rb_sdelegator__(int argc, VALUE *argv, VALUE self)
-{
-}
+    rb_funcall(methods, diff, 1, delegator_api);
+    rb_ary_delete(methods, to_s);
+    rb_ary_delete(methods, inspect);
+    rb_ary_delete(methods, apequal);
+    rb_ary_delete(methods, apnequal);
+    rb_ary_delete(methods, tequal);
 
-/*
- * Document-method: 
- * call-seq: _()
- * 
- * 
- */
-static VALUE
-rb_sdelegator__(int argc, VALUE *argv, VALUE self)
-{
+    rb_define_method(klass, "__getobj__", rb_delegatorc_getobj, 0);
+    rb_define_method(klass, "__setobj__", rb_delegatorc_setobj, 1);
+    rb_define_singleton_method(klass, "public_instance_methods", rb_delegatorc_s_public_instance_methods, -1);
+    rb_define_singleton_method(klass, "protected_instance_methods", rb_delegatorc_s_protected_instance_methods, -1);
+
+    return klass;
 }
 
 void
 Init_cdelegator(void)
 {
-    rb_cDelegator =;
+    rb_cDelegator = rb_define_class("Delegator", rb_cBasicObject);
 
     VALUE kernel = rb_obj_dup(rb_mKernel);
     /* TODO:
@@ -683,6 +722,7 @@ Init_cdelegator(void)
     __setobj__ = rb_intern("__setobj__");
     __getobj__ = rb_intern("__getobj__");
     caller = rb_intern("caller");
+    methods = rb_intern("methods");
     public_methods = rb_intern("public_methods");
     protected_methods = rb_intern("protected_methods");
     not = rb_intern("!");
@@ -695,6 +735,49 @@ Init_cdelegator(void)
     untaint = rb_intern("untaint");
     freeze = rb_intern("freeze");
     equal_p = rb_intern("equal?");
+    diff = rb_intern("-");
+    or = rb_intern("|");
+    clone = rb_intern("clone");
+    dup = rb_intern("dup");
+    to_s = rb_intern("to_s");
+    inspect = rb_intern("inspect");
+    apequal = rb_intern("=~");
+    apnequal = rb_intern("!~");
+    tequal = rb_intern("===");
+
+    rb_define_alloc_func(rb_cDelegator, delegator_alloc);
+
+    rb_define_singleton_method(rb_cDelegator, "const_missing", rb_delegator_s_const_missing, 1);
+    rb_define_singleton_method(rb_cDelegator, "public_api", rb_delegator_s_public_api, 1);
+    rb_define_singleton_method(rb_cDelegator, "delegating_block", rb_delegator_s_delegating_block, 1);
+
+    rb_define_method(rb_cDelegator, "initialize", rb_delegator_initialize, 1);
+    rb_define_method(rb_cDelegator, "method_missing", rb_delegator_method_missing, -1);
+    rb_define_method(rb_cDelegator, "respond_to_missing?", rb_delegator_respond_to_missing_p, 2);
+    rb_define_method(rb_cDelegator, "methods", rb_delegator_methods, 0);
+    rb_define_method(rb_cDelegator, "public_methods", rb_delegator_public_methods, -1);
+    rb_define_method(rb_cDelegator, "protected_methods", rb_delegator_protected_methods, -1);
+    rb_define_method(rb_cDelegator, "==", rb_delegator_equal_p, 1);
+    rb_define_method(rb_cDelegator, "!=", rb_delegator_not_equal_p, 1);
+    rb_define_method(rb_cDelegator, "!", rb_delegator_not, 0);
+    rb_define_method(rb_cDelegator, "__getobj__", rb_delegator_getobj, 0);
+    rb_define_method(rb_cDelegator, "__setobj__", rb_delegator_setobj, 1);
+    rb_define_method(rb_cDelegator, "marshal_dump", rb_delegator_marshal_dump, 0);
+    rb_define_method(rb_cDelegator, "marshal_load", rb_delegator_marshal_load, 1);
+    rb_define_private_method(rb_cDelegator, "initialize_clone", rb_delegator_initialize_clone, 1);
+    rb_define_private_method(rb_cDelegator, "initialize_dup", rb_delegator_initialize_dup, 1);
+    rb_define_method(rb_cDelegator, "trust", rb_delegator_trust, 0);
+    rb_define_method(rb_cDelegator, "untrust", rb_delegator_untrust, 0);
+    rb_define_method(rb_cDelegator, "taint", rb_delegator_taint, 0);
+    rb_define_method(rb_cDelegator, "untaint", rb_delegator_untaint, 0);
+    rb_define_method(rb_cDelegator, "freeze", rb_delegator_freeze, 0);
 
     delegator_api = rb_class_public_instance_methods(0, 0, rb_cDelegator);
+
+    rb_cSDelegator = rb_define_class("Delegator", rb_cDelegator);
+
+    rb_define_method(rb_cSDelegator, "__getobj__", rb_sdelegator_getobj, 0);
+    rb_define_method(rb_cSDelegator, "__setobj__", rb_sdelegator_setobj, 1);
+
+    rb_provide("cdelagate.rb");
 }
