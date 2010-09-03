@@ -559,10 +559,7 @@ delegating_block_i(VALUE args)
 static VALUE
 delegating_block_ii(VALUE args)
 {
-    /* TODO 
-    VALUE regexp = rb_reg_quote(rb_sprintf("\\A%s:%s:"));
-    if ()
-    */
+    /* TODO */
     return Qnil;
 }
 
