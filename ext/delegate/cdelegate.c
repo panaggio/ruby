@@ -230,7 +230,7 @@ rb_delegator_method_missing_i(VALUE args)
     VALUE target = ((VALUE *) args)[0];
     int argc = (int) ((VALUE *) args)[1];
     VALUE *argv = (VALUE *) ((VALUE*) args)[2];
-    VALUE mid = rb_intern_str(argv[0]);
+    ID mid = rb_intern_str(argv[0]);
 
     if (rb_respond_to(target, mid))
         return rb_funcall2(target, argv[0], argc-1, &argv[1]);
@@ -268,7 +268,7 @@ rb_delegator_method_missing(int argc, VALUE *argv, VALUE self)
 static VALUE
 rb_delegator_respond_to_missing_p(VALUE self, VALUE m, VALUE include_private)
 {
-    VALUE mid = rb_intern_str(m);
+    ID mid = rb_intern_str(m);
     VALUE obj = delegator_self_getobj(self);
     int r = rb_obj_respond_to(obj, m, RTEST(include_private));
     if (r && RTEST(include_private) && !rb_respond_to(obj, m)){
