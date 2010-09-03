@@ -704,7 +704,7 @@ rb_delegate_class(VALUE superclass)
 }
 
 void
-Init_cdelegator(void)
+Init_cdelegate(void)
 {
     rb_cDelegator = rb_define_class("Delegator", rb_cBasicObject);
 
@@ -774,10 +774,12 @@ Init_cdelegator(void)
 
     delegator_api = rb_class_public_instance_methods(0, 0, rb_cDelegator);
 
-    rb_cSDelegator = rb_define_class("Delegator", rb_cDelegator);
+    rb_cSDelegator = rb_define_class("SimpleDelegator", rb_cDelegator);
 
     rb_define_method(rb_cSDelegator, "__getobj__", rb_sdelegator_getobj, 0);
     rb_define_method(rb_cSDelegator, "__setobj__", rb_sdelegator_setobj, 1);
+
+    rb_define_global_function("DelegateClass", rb_delegate_class, 1);
 
     rb_provide("cdelagate.rb");
 }
