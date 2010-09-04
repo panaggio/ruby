@@ -28,6 +28,11 @@ typedef struct {
     VALUE hash;
 } Set;
 
+typedef struct {
+    Set set_;
+    VALUE keys;
+} SortedSet;
+
 static void
 set_mark(void *ptr)
 {
@@ -35,7 +40,16 @@ set_mark(void *ptr)
     rb_gc_mark(set->hash);
 }
 
+static void
+sset_mark(void *ptr)
+{
+    SortedSet *sset = ptr;
+    set_mark(&sset->set_);
+    rb_gc_mark(sset->keys);
+}
+
 #define set_free RUBY_TYPED_DEFAULT_FREE
+#define sset_free RUBY_TYPED_DEFAULT_FREE
 
 static size_t
 set_memsize(const void *ptr)
@@ -50,23 +64,64 @@ set_memsize(const void *ptr)
     return size;
 }
 
+static size_t
+sset_memsize(const void *ptr)
+{
+    size_t size = 0;
+    if (ptr) {
+        const SortedSet *sset = ptr;
+        size = sizeof(SortedSet) - sizeof(Set);
+        size += set_memsize(&sset->set_);
+        size += rb_ary_memsize(sset->keys);
+    }
+    return size;
+}
+
 static const rb_data_type_t set_data_type = {
     "set",
     {set_mark, set_free, set_memsize,},
 };
 
+static const rb_data_type_t sset_data_type = {
+    "sortedset",
+    {sset_mark, sset_free, sset_memsize,},
+};
+
 #define GetSetPtr(obj, tobj) \
     TypedData_Get_Struct(obj, Set, &set_data_type, tobj)
+
+#define GetSortedSetPtr(obj, tobj) \
+    TypedData_Get_Struct(obj, SortedSet, &sset_data_type, tobj)
+
+static SortedSet *
+get_sset_ptr(VALUE self)
+{
+    SortedSet *sset;
+    GetSortedSetPtr(self, sset);
+    if (!sset->keys || !sset->set_.hash) {
+       rb_raise(rb_eArgError, "uninitialized SortedSet");
+    }
+    return sset;
+}
+
+static Set *
+_get_set_ptr(VALUE self)
+{
+    Set *set;
+    GetSetPtr(self, set);
+    if (!set->hash)
+        rb_raise(rb_eArgError, "uninitialized Set");
+    return set;
+}
 
 static Set *
 get_set_ptr(VALUE self)
 {
-    Set *set;
-    GetSetPtr(self, set);
-    if (!set->hash) {
-       rb_raise(rb_eArgError, "uninitialized Set");
+    if (rb_class_of(self) == rb_cSortedSet) {
+        SortedSet *sset = get_sset_ptr(self);
+        return &sset->set_;
     }
-    return set;
+    return _get_set_ptr(self);
 }
 
 static VALUE
@@ -74,6 +129,13 @@ set_alloc(VALUE klass)
 {
     Set *set;
     return TypedData_Make_Struct(klass, Set, &set_data_type, set);
+}
+
+static VALUE
+sset_alloc(VALUE klass)
+{
+    SortedSet *sset;
+    return TypedData_Make_Struct(klass, SortedSet, &sset_data_type, sset);
 }
 
 static void
@@ -203,7 +265,19 @@ rb_set_merge(VALUE self, VALUE a_enum)
 }
 
 static VALUE
-set_new(VALUE klass)
+sset_new(VALUE klass)
+{
+    SortedSet *sset;
+    VALUE self = sset_alloc(klass);
+    GetSortedSetPtr(self, sset);
+    sset->keys = Qnil;
+    sset->set_.hash = rb_hash_new();
+
+    return self;
+}
+
+static VALUE
+_set_new(VALUE klass)
 {
     Set *set;
     VALUE self = set_alloc(klass);
@@ -211,6 +285,14 @@ set_new(VALUE klass)
     set->hash = rb_hash_new();
 
     return self;
+}
+
+static VALUE
+set_new(VALUE klass)
+{
+    if (klass == rb_cSortedSet)
+        return sset_new(klass);
+    return _set_new(klass);
 }
 
 static VALUE
@@ -238,6 +320,29 @@ set_initialize(int argc, VALUE *argv, Set *set)
     }
 }
 
+static VALUE
+rb_sset_initialize(int argc, VALUE *argv, VALUE self)
+{
+    SortedSet *sset;
+    GetSortedSetPtr(self, sset);
+    sset->keys = Qnil;
+    set_initialize(argc, argv, &sset->set_);
+    rb_iv_set(self, "@hash", sset->set_.hash);
+
+    return self;
+}
+
+static VALUE
+_rb_set_initialize(int argc, VALUE *argv, VALUE self)
+{
+    Set *set;
+    GetSetPtr(self, set);
+    set_initialize(argc, argv, set);
+    rb_iv_set(self, "@hash", set->hash);
+
+    return self;
+}
+
 /*
  * Document-method: new
  * call-seq: new
@@ -247,11 +352,9 @@ set_initialize(int argc, VALUE *argv, Set *set)
 static VALUE
 rb_set_initialize(int argc, VALUE *argv, VALUE self)
 {
-    Set *set;
-    GetSetPtr(self, set);
-    set_initialize(argc, argv, set);
-    rb_iv_set(self, "@hash", set->hash);
-    return self;
+    if (rb_class_of(self) == rb_cSortedSet)
+        return rb_sset_initialize(argc, argv, self);
+    return _rb_set_initialize(argc, argv, self);
 }
 
 static void
@@ -1370,83 +1473,6 @@ rb_rbtree_sset_add(VALUE self, VALUE o)
  *   set2.each { |obj| }
  *   # => raises ArgumentError: comparison of Fixnum with String failed
  */
-
-typedef struct {
-    Set set_;
-    VALUE keys;
-} SortedSet;
-
-static void
-sset_mark(void *ptr)
-{
-    SortedSet *sset = ptr;
-    set_mark(&sset->set_);
-    rb_gc_mark(sset->keys);
-}
-
-#define sset_free RUBY_TYPED_DEFAULT_FREE
-
-static size_t
-sset_memsize(const void *ptr)
-{
-    size_t size = 0;
-    if (ptr) {
-        const SortedSet *sset = ptr;
-        size = sizeof(SortedSet) - sizeof(Set);
-        size += set_memsize(&sset->set_);
-        size += rb_ary_memsize(sset->keys);
-    }
-    return size;
-}
-
-static const rb_data_type_t sset_data_type = {
-    "sortedset",
-    {sset_mark, sset_free, sset_memsize,},
-};
-
-#define GetSortedSetPtr(obj, tobj) \
-    TypedData_Get_Struct(obj, SortedSet, &sset_data_type, tobj)
-
-static SortedSet *
-get_sset_ptr(VALUE self)
-{
-    SortedSet *sset;
-    GetSortedSetPtr(self, sset);
-    if (!sset->keys || !sset->set_.hash) {
-       rb_raise(rb_eArgError, "uninitialized SortedSet");
-    }
-    return sset;
-}
-
-static VALUE
-sset_alloc(VALUE klass)
-{
-    SortedSet *sset;
-    return TypedData_Make_Struct(klass, SortedSet, &sset_data_type, sset);
-}
-
-static VALUE
-sset_new(VALUE klass)
-{
-    SortedSet *sset;
-    VALUE self = sset_alloc(klass);
-    GetSortedSetPtr(self, sset);
-    sset->keys = Qnil;
-    sset->set_.hash = rb_hash_new();
-
-    return self;
-}
-
-static VALUE
-rb_sset_initialize(int argc, VALUE *argv, VALUE self)
-{
-    SortedSet *sset;
-    GetSortedSetPtr(self, sset);
-    sset->keys = Qnil;
-    set_initialize(argc, argv, &sset->set_);
-    rb_iv_set(self, "@hash", sset->set_.hash);
-    return self;
-}
 
 static VALUE
 rb_sset_s_create(int argc, VALUE *argv, VALUE klass)
