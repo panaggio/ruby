@@ -987,14 +987,14 @@ rb_set_intersection(VALUE self, VALUE a_enum)
     return new;
 }
 
-static VALUE
-set_exclusive_i(VALUE e, VALUE set, int argc, VALUE *argv)
+static int
+set_exclusive_i(VALUE e, VALUE v, VALUE argv)
 {
-    Set *oset = (Set *) argv[0];
-    if (set_includes(oset, e) == Qtrue)
-        set_delete(oset, e);
+    Set *set = (Set *) argv;
+    if (set_includes(set, e) == Qtrue)
+        set_delete(set, e);
     else
-        set_add(oset, e);
+        set_add(set, e);
     return ST_CONTINUE;
 }
 
@@ -1011,8 +1011,13 @@ rb_set_exclusive(VALUE self, VALUE a_enum)
 {
     /* TODO: check if there's not better way of checking classes */
     VALUE new = set_new(rb_class_of(self));
+    VALUE args;
+
+    Set *self_set = get_set_ptr(self);
     Set *new_set = get_set_ptr(new);
-    set_do_with_enum(get_set_ptr(self), a_enum, set_exclusive_i, 1, (VALUE *) &new_set);
+    set_merge(new_set, a_enum);
+
+    rb_hash_foreach(self_set->hash, set_exclusive_i, (VALUE) new_set);
     return new;
 }
 
