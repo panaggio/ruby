@@ -1176,6 +1176,16 @@ hash_values_i(VALUE key, VALUE value, VALUE ary)
     return ST_CONTINUE;
 }
 
+static VALUE
+set_divide_dig(VALUE css, VALUE args, int argc, VALUE *argv)
+{
+    VALUE self = RARRAY_PTR(args)[0];
+    VALUE set = RARRAY_PTR(args)[1];
+    VALUE new = set_new(rb_class_of(self));
+    rb_set_merge(new, css);
+    return rb_set_add(set, new);
+}
+
 /*
  * Document-method: divide
  * call-seq: divide(&block)
@@ -1220,15 +1230,16 @@ rb_set_divide(VALUE self)
         args[1] = (VALUE) set;
         rb_hash_foreach(set->hash, set_divide_i, (VALUE) args);
 
-        /* TODO: Find a better way of calling each_strongly_connected_component */
-        rb_eval_string("dig.each_strongly_connected_component { |css| new.add(self.class.new(css)) }");
+        rb_block_call(dig, rb_intern("each_strongly_connected_component"), 0, 0, set_divide_dig, rb_ary_new3(2, self, new));
+
         return new;
     }
 
     /* TODO: Find a better way to call Hash#values */
     ary = rb_ary_new();
     rb_hash_foreach(rb_set_classify(self), hash_values_i, ary);
-    return ary;
+
+    return rb_set_merge(new, ary);
 }
 
 static VALUE
