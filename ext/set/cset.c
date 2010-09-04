@@ -1274,20 +1274,38 @@ rb_set_inspect(VALUE self)
 }
 
 static VALUE
+set_pp_ii(VALUE o, VALUE args, int argc, VALUE *argv)
+{
+    VALUE pp = RARRAY_PTR(args)[1];
+    rb_funcall(pp, rb_intern("pp"), 1, o);
+    return Qnil;
+}
+
+static VALUE
+set_pp_i(VALUE e, VALUE args, int argc, VALUE *argv)
+{
+    VALUE self = RARRAY_PTR(args)[0];
+    VALUE pp = RARRAY_PTR(args)[1];
+    rb_block_call(pp, rb_intern("seplist"), 1, &self, set_pp_ii, args);
+    return Qnil;
+}
+
+static VALUE
 rb_set_pretty_print(VALUE self, VALUE pp)
 {
-    /* TODO: Find a better way of calling PrettyPrint#text */
-    rb_funcall(pp, rb_intern("text"), 1, rb_sprintf("#<%s: {", rb_class2name(rb_class_of(self))));
-    rb_eval_string("pp.nest(1) { pp.seplist(self) { |o| pp.pp o } }");
+    VALUE one = INT2FIX(1);
+    rb_funcall(pp, rb_intern("text"), 1, rb_sprintf("#<%s: {", rb_obj_classname(self)));
+
+    rb_block_call(pp, rb_intern("nest"), 1, &one, set_pp_i, rb_ary_new3(2, self, pp));
+
     return rb_funcall(pp, rb_intern("text"), 1, rb_sprintf("}>"));
 }
 
 static VALUE
 rb_set_pretty_print_cycle(VALUE self, VALUE pp)
 {
-    /* TODO: Find a better way of calling PrettyPrint#text */
     Set *set = get_set_ptr(self);
-    return rb_funcall(pp, rb_intern("text"), 1, rb_sprintf("#<%s: {%s}>", rb_class2name(rb_class_of(self)), set_empty_p(set)==Qtrue? "" : "..."));
+    return rb_funcall(pp, rb_intern("text"), 1, rb_sprintf("#<%s: {%s}>", rb_obj_classname(self), (set_empty_p(set) == Qtrue? "" : "...")));
 }
 
 /* FIXME: don't know how to do it by now
