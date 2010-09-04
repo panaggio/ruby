@@ -1588,6 +1588,9 @@ rb_sset_each(VALUE self) {
     for (i=0; i<RARRAY_LEN(sset->keys); i++)
         rb_yield(RARRAY_PTR(sset->keys)[i]);
 
+    /* FIXME: this is just a workaround for invasive (bang) methods */
+    sset->keys = Qnil;
+
     return self;
 }
 
