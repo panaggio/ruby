@@ -546,7 +546,6 @@ set_to_a(Set *set)
 {
     VALUE ary = rb_ary_new();
     rb_hash_foreach(set->hash, set_to_a_i, ary);
-    OBJ_INFECT(ary, set->hash);
 
     return ary;
 }
