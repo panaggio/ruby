@@ -1011,7 +1011,6 @@ rb_set_exclusive(VALUE self, VALUE a_enum)
 {
     /* TODO: check if there's not better way of checking classes */
     VALUE new = set_new(rb_class_of(self));
-    VALUE args;
 
     Set *self_set = get_set_ptr(self);
     Set *new_set = get_set_ptr(new);
