@@ -1564,10 +1564,19 @@ rb_sset_merge(VALUE self, VALUE a_enum)
     return self;
 }
 
-static void sset_to_a(SortedSet *sset)
+static VALUE
+sset_to_a_i(VALUE data, VALUE args, int argc, VALUE *argv)
 {
-    if (sset->keys == Qnil)
-        sset->keys = rb_ary_sort_bang(set_to_a(&sset->set_));
+    return rb_funcall(argv[0], rb_intern("<=>"), 1, argv[1]);
+}
+
+static void
+sset_to_a(SortedSet *sset)
+{
+    if (sset->keys == Qnil) {
+        VALUE ary = set_to_a(&sset->set_);
+        sset->keys = rb_block_call(ary, rb_intern("sort!"), 0, 0, sset_to_a_i, 0);
+    }
 }
 
 static VALUE
