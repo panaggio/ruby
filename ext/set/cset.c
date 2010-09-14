@@ -1174,7 +1174,7 @@ static VALUE
 rb_set_hash(VALUE self)
 {
     Set *set = get_set_ptr(self);
-    return set->hash;
+    return rb_funcall(set->hash, rb_intern("hash"), 0);
 }
 
 static VALUE
