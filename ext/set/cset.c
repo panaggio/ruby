@@ -109,8 +109,9 @@ _get_set_ptr(VALUE self)
 {
     Set *set;
     GetSetPtr(self, set);
+    /* FIXME: isn't this intrusive? */
     if (!set->hash)
-        rb_raise(rb_eArgError, "uninitialized Set");
+        set->hash = rb_hash_new();
     return set;
 }
 
