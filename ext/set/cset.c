@@ -176,6 +176,23 @@ rb_set_do_with_enum(VALUE self, VALUE a_enum)
     return Qnil;
 }
 
+static VALUE sset_to_a(SortedSet *sset);
+
+static VALUE
+set_foreach(VALUE self, VALUE (*func)(ANYARGS), VALUE args)
+{
+    if (rb_class_of(self) == rb_cSortedSet) {
+        SortedSet *sset = get_sset_ptr(self);
+        int i;
+        sset_to_a(sset);
+        for (i=0; i<RARRAY_LEN(sset->keys); i++)
+            func(RARRAY_PTR(sset->keys)[i], 0, (VALUE) &sset->set_);
+        return self;
+    }
+    Set *set = _get_set_ptr(self);
+    return rb_set_foreach(set->hash, func, args);
+}
+
 static void
 set_add(Set *set, VALUE o)
 {
@@ -554,12 +571,14 @@ set_to_a(Set *set)
  * Document-method: to_a
  * call-seq: to_a
  *
- * Converts the set to an array.  The order of elements is uncertain.
+ * Converts the set to an array. The order of elements is uncertain.
  */
 static VALUE
 rb_set_to_a(VALUE self)
 {
-    return set_to_a(get_set_ptr(self));
+    if (rb_class_of(self) == rb_cSortedSet)
+        return sset_to_a(get_sset_ptr(self));
+    return set_to_a(_get_set_ptr(self));
 }
 
 static VALUE
@@ -1525,13 +1544,16 @@ static VALUE
 rb_sset_delete_if(VALUE self)
 {
     SortedSet *sset = get_sset_ptr(self);
-    int n;
+    int n, i;
 
     if (!rb_block_given_p())
         return set_no_block_given(self, rb_intern("delete_if"));
 
     n = set_size(&sset->set_);
-    set_delete_if(&sset->set_);
+    sset_to_a(sset);
+    for (i=0; i<RARRAY_LEN(sset->keys); i++)
+        set_delete_if_i(RARRAY_PTR(sset->keys)[i], 0, (VALUE) &sset->set_);
+
     if (set_size(&sset->set_) != n)
         sset->keys = Qnil;
 
@@ -1542,13 +1564,16 @@ static VALUE
 rb_sset_keep_if(VALUE self)
 {
     SortedSet *sset = get_sset_ptr(self);
-    int n;
+    int n, i;
 
     if (!rb_block_given_p())
         return set_no_block_given(self, rb_intern("keep_if"));
 
     n = set_size(&sset->set_);
-    set_keep_if(&sset->set_);
+    sset_to_a(sset);
+    for (i=0; i<RARRAY_LEN(sset->keys); i++)
+        set_keep_if_i(RARRAY_PTR(sset->keys)[i], 0, (VALUE) &sset->set_);
+
     if (set_size(&sset->set_) != n)
         sset->keys = Qnil;
 
@@ -1570,13 +1595,14 @@ sset_to_a_i(VALUE data, VALUE args, int argc, VALUE *argv)
     return rb_funcall(argv[0], rb_intern("<=>"), 1, argv[1]);
 }
 
-static void
+static VALUE
 sset_to_a(SortedSet *sset)
 {
     if (sset->keys == Qnil) {
         VALUE ary = set_to_a(&sset->set_);
-        sset->keys = rb_block_call(ary, rb_intern("sort!"), 0, 0, sset_to_a_i, 0);
+        return sset->keys = rb_block_call(ary, rb_intern("sort!"), 0, 0, sset_to_a_i, 0);
     }
+    return sset->keys;
 }
 
 static VALUE
